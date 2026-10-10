@@ -1,0 +1,11 @@
+.git
+bin
+data
+legacy-node.tar.gz
+web/node_modules
+web/.next
+web/out
+web/public/engine.wasm
+web/public/wasm_exec.js
+chart
+art

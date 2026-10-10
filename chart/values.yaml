@@ -1,0 +1,64 @@
+# Une seule instance : la table de blackjack à plusieurs et les limites de débit
+# vivent dans la mémoire du processus. Ne pas augmenter sans les avoir déplacées.
+fullnameOverride: ""
+nameOverride: ""
+
+image:
+  repository: ghcr.io/bingops-com/slots
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: traefik
+  annotations: {}
+  # cert-manager.io/cluster-issuer: letsencrypt-cloudflare
+  # traefik.ingress.kubernetes.io/router.entrypoints: websecure
+  # traefik.ingress.kubernetes.io/router.tls: "true"
+  host: slots.invalid
+  # Nom du Secret TLS ; vide : pas de bloc tls.
+  tlsSecretName: ""
+
+# Le serveur est derrière l'ingress : il lit X-Forwarded-For et X-Forwarded-Proto.
+# Mettre false si le Service est exposé sans proxy devant.
+trustProxy: true
+
+database:
+  # Base gérée par CloudNativePG dans le namespace de la release. L'application lit
+  # l'URI de connexion dans le Secret que CNPG génère (<nom>-postgresql-app, clé uri).
+  cnpg:
+    enabled: true
+    instances: 1
+    storage:
+      size: 2Gi
+      storageClass: ""
+    # Sauvegarde continue par le plugin Barman Cloud. objectStore est le nom d'un
+    # ObjectStore existant dans le namespace ; serverName doit changer après chaque
+    # initdb (voir docs/infrastructure/cloudnative-pg.md de labops).
+    backup:
+      enabled: false
+      objectStore: slots-postgresql
+      serverName: slots-postgresql-g1
+      schedule: "0 30 3 * * *"
+    podMonitor:
+      enabled: false
+  # Base existante, quand cnpg.enabled est false : un Secret contenant l'URL
+  # postgres://utilisateur:motdepasse@hôte:5432/base.
+  existingSecret:
+    name: ""
+    key: uri
+
+resources:
+  requests:
+    cpu: 20m
+    memory: 96Mi
+  limits:
+    memory: 384Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

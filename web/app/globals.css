@@ -1,0 +1,4111 @@
+/* lab.bingo slots. Une interface sobre autour de panneaux de mer : le classement est une
+   course de bateaux, chaque jeu se joue sur un panneau bleu, tout le reste se tait.
+   Couleurs, familles Red Hat et mascotte sont celles des autres applications lab.bingo. */
+
+@font-face {
+  font-family: 'Red Hat Display Variable';
+  font-weight: 300 900;
+  font-display: swap;
+  src: url('/fonts/red-hat-display-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Red Hat Display Variable';
+  font-weight: 300 900;
+  font-display: swap;
+  src: url('/fonts/red-hat-display-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Red Hat Text Variable';
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/fonts/red-hat-text-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Red Hat Text Variable';
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/fonts/red-hat-text-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  --ground: #f3f6fc;
+  --surface: #ffffff;
+  --ink: #111730;
+  --ink-soft: #586079;
+  --line: #d5dcec;
+  --field-line: #8690a3;
+  --sea: #1443d6;
+  --sea-hover: #0f36b3;
+  --sea-deep: #0a2480;
+  --navy: #0b2a94;
+  --mint: #8af2bf;
+  --link: #1443d6;
+  --down: #c81e45;
+  /* Couleurs du jeu lui-même : le rouge et le noir des cartes et de la roulette. */
+  --rouge: #d42a4c;
+  --noir: #081547;
+  /* La couleur de Barbe-Rouge, sur sa machine seulement : sa barbe, sa poudre, sa lune. */
+  --beard: #ff6352;
+  /* Celle de Big Catch : le ciré du pêcheur, et ce qu'il y a à pêcher. */
+  --oilskin: #ffd43b;
+  /* Celle de Mort ou Vif : le rose de l'aube, l'heure des duels. */
+  --dawn: #ff8fc0;
+  /* Neptune : le violet de ses orbes. Le Récif : le turquoise du lagon. Chiens de bord :
+     l'orange des médailles. */
+  --orb: #b99cff;
+  --lagoon: #4fe3e0;
+  --medal: #ffa64d;
+  --display: 'Red Hat Display Variable', ui-sans-serif, system-ui, sans-serif;
+  --body: 'Red Hat Text Variable', ui-sans-serif, system-ui, sans-serif;
+  --veil: rgb(255 255 255 / 0.12);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #060f2b;
+    --surface: #0c1a45;
+    --ink: #eaefff;
+    --ink-soft: #a3b3df;
+    --line: #20327a;
+    --field-line: #5368b5;
+    --sea: #1238b8;
+    --sea-hover: #1a47d6;
+    --sea-deep: #081c66;
+    --link: #9db6ff;
+    --down: #ff7d97;
+    color-scheme: dark;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font: 400 1rem/1.5 var(--body);
+  -webkit-font-smoothing: antialiased;
+}
+h1,
+h2,
+p,
+ul {
+  margin: 0;
+  padding: 0;
+}
+h1,
+h2 {
+  font-family: var(--display);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+ul {
+  list-style: none;
+}
+a {
+  color: var(--link);
+}
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+[hidden] {
+  display: none !important;
+}
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--link) 60%, transparent);
+  outline-offset: 2px;
+}
+.ic {
+  width: 1.25em;
+  height: 1.25em;
+  flex: none;
+}
+.coin {
+  margin-right: 0.3em;
+  opacity: 0.7;
+}
+sup {
+  font-size: 0.65em;
+}
+
+/* --- Ossature : une bande de mer à gauche, le contenu à droite ------------- */
+
+#app {
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  min-height: 100vh;
+}
+.side {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 1rem 0;
+  overflow: hidden;
+  isolation: isolate;
+  background: linear-gradient(170deg, var(--sea) 30%, var(--sea-deep) 100%);
+  color: #fff;
+}
+/* Semis de carte marine, visible seulement quand on le cherche. */
+.side::before,
+.sea::before,
+.stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.12;
+  background: radial-gradient(#fff 1px, transparent 1.6px) 0 0 / 1.75rem 1.75rem;
+  pointer-events: none;
+}
+.side :focus-visible,
+.sea :focus-visible,
+.stage :focus-visible {
+  outline-color: #fff;
+}
+.lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0 0.5rem;
+  font: 800 1.2rem/1 var(--display);
+  letter-spacing: -0.02em;
+  color: #fff;
+  text-decoration: none;
+}
+.lockup-kind {
+  font-weight: 500;
+  opacity: 0.8;
+}
+.logo {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+  border-radius: 22%;
+  box-shadow: 0 0 0 1.5px rgb(255 255 255 / 0.4);
+}
+.logo-tile {
+  fill: rgb(255 255 255 / 0.14);
+}
+.logo-trace {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.logo-node {
+  fill: var(--mint);
+}
+#nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 1.75rem;
+}
+#nav h2 {
+  margin: 1.25rem 0.75rem 0.35rem;
+  font: 500 0.8125rem/1.3 var(--body);
+  letter-spacing: 0;
+  opacity: 0.75;
+}
+#nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  color: #fff;
+  font-weight: 500;
+  text-decoration: none;
+}
+#nav a:hover {
+  background: var(--veil);
+}
+#nav a[aria-current] {
+  background: rgb(255 255 255 / 0.2);
+  font-weight: 700;
+}
+#nav .ic {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+/* La mascotte, assise au pied du panneau bleu : le chat du logo, en entier. */
+.mascot {
+  width: 7.5rem;
+  margin: auto auto 0;
+  padding-top: 1.5rem;
+  flex: none;
+  overflow: visible;
+}
+.mascot-fur {
+  fill: #fff;
+}
+.mascot-inner {
+  fill: #a9c4f5;
+}
+.mascot-ink {
+  fill: #0b2a94;
+}
+.mascot-glint {
+  fill: #fff;
+}
+.mascot-brow,
+.mascot-strap,
+.mascot-mouth {
+  fill: none;
+  stroke: #0b2a94;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mascot-mouth {
+  stroke-width: 2.6;
+}
+.mascot-collar {
+  fill: #8af2bf;
+}
+.mascot-tag {
+  fill: #8af2bf;
+  stroke: #fff;
+  stroke-width: 2.5;
+}
+.mascot-tail {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 11;
+  stroke-linecap: round;
+  transform-box: fill-box;
+  transform-origin: 0 100%;
+  animation: tail 4.2s ease-in-out infinite;
+}
+.mascot-eye,
+.mascot-ear {
+  transform-box: fill-box;
+}
+.mascot-eye {
+  transform-origin: center;
+  animation: blink 4.8s linear infinite;
+}
+.mascot-ear {
+  transform-origin: 30% 100%;
+  animation: ear 5.5s ease-in-out infinite;
+}
+
+/* Le bouton du menu : trois traits, visible seulement sur téléphone. */
+.burger {
+  display: none;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1.5px solid rgb(255 255 255 / 0.55);
+  border-radius: 10px;
+  background: none;
+  color: #fff;
+}
+.burger i,
+.burger i::before,
+.burger i::after {
+  display: block;
+  width: 1.25rem;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transition: transform 0.2s, opacity 0.2s;
+}
+.burger i {
+  position: relative;
+}
+.burger i::before,
+.burger i::after {
+  content: '';
+  position: absolute;
+  left: 0;
+}
+.burger i::before {
+  top: -0.42rem;
+}
+.burger i::after {
+  top: 0.42rem;
+}
+.burger[aria-expanded='true'] i {
+  background: transparent;
+}
+.burger[aria-expanded='true'] i::before {
+  transform: translateY(0.42rem) rotate(45deg);
+}
+.burger[aria-expanded='true'] i::after {
+  transform: translateY(-0.42rem) rotate(-45deg);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  padding: 1rem clamp(1rem, 3vw, 2.5rem);
+  border-bottom: 1px solid var(--line);
+}
+.mode {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.mode [data-mode] {
+  height: 2.25rem;
+  padding: 0 0.9rem;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font-weight: 500;
+}
+.mode [aria-pressed='true'] {
+  background: var(--sea);
+  color: #fff;
+  font-weight: 700;
+}
+.offline {
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  border: 0;
+  background: none;
+  color: var(--down);
+  font-weight: 500;
+  text-decoration: underline;
+}
+.wallet {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+.wallet small {
+  display: block;
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+  line-height: 1.2;
+}
+.wallet b {
+  font: 800 1.2rem/1.2 var(--display);
+  font-variant-numeric: tabular-nums;
+}
+.wallet-side b {
+  font-size: 1rem;
+  font-weight: 700;
+}
+.account {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+.who {
+  font-weight: 700;
+  margin-right: 0.25rem;
+}
+#view {
+  width: 100%;
+  max-width: 76rem;
+  padding: clamp(1rem, 3vw, 2.5rem);
+}
+.foot {
+  margin-top: auto;
+  padding: 1.5rem clamp(1rem, 3vw, 2.5rem) 2rem;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+/* --- Boutons et champs ------------------------------------------------------ */
+
+.btn {
+  height: 3rem;
+  padding: 0 1.25rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.btn.primary {
+  background: var(--sea);
+  color: #fff;
+}
+.btn.primary:hover:not(:disabled) {
+  background: var(--sea-hover);
+}
+.btn.quiet {
+  border-color: var(--field-line);
+  background: none;
+  font-weight: 500;
+}
+.btn.quiet:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--link) 8%, transparent);
+}
+.btn.small {
+  height: 2.25rem;
+  padding: 0 0.85rem;
+  font-size: 0.9375rem;
+}
+.field {
+  margin-bottom: 1rem;
+}
+.field label,
+.dialog label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+input:not([type='checkbox'], [type='range']),
+select {
+  width: 100%;
+  height: 3rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--field-line);
+  border-radius: 10px;
+  background: var(--surface);
+  font-variant-numeric: tabular-nums;
+}
+input:focus-visible,
+select:focus-visible {
+  outline-offset: 0;
+  border-color: var(--link);
+}
+.bet {
+  position: relative;
+  display: flex;
+  gap: 0.35rem;
+}
+.bet .coin {
+  position: absolute;
+  left: 0.85rem;
+  top: 0.75rem;
+  pointer-events: none;
+}
+.bet input {
+  padding-left: 2.1rem;
+  -moz-appearance: textfield;
+}
+.bet input::-webkit-outer-spin-button,
+.bet input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+.bet button {
+  flex: none;
+  width: 3rem;
+  border: 1px solid var(--field-line);
+  border-radius: 10px;
+  background: none;
+  font-weight: 700;
+}
+.readout {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--ground);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+}
+.toggle input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--sea);
+}
+.hint {
+  margin-top: 0.6rem;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+.notice {
+  margin-bottom: 1rem;
+  color: var(--ink-soft);
+}
+
+/* --- Accueil : la course, puis le registre ---------------------------------- */
+
+.sea {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(1.25rem, 3vw, 2.25rem);
+  border-radius: 14px;
+  background: linear-gradient(170deg, var(--sea) 30%, var(--sea-deep) 100%);
+  color: #fff;
+}
+.sea h1 {
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  font-weight: 900;
+  letter-spacing: -0.035em;
+}
+.sea > p {
+  margin-top: 0.4rem;
+  max-width: 44rem;
+  font-size: 1.0625rem;
+  opacity: 0.92;
+}
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 1.25rem 0 0.5rem;
+}
+.tabs button {
+  height: 2.25rem;
+  padding: 0 0.95rem;
+  border: 1px solid rgb(255 255 255 / 0.4);
+  border-radius: 999px;
+  background: none;
+  color: #fff;
+  font-weight: 500;
+}
+.tabs button:hover {
+  background: var(--veil);
+}
+.tabs [aria-pressed='true'] {
+  border-color: #fff;
+  background: #fff;
+  color: #1443d6;
+  font-weight: 700;
+}
+.course {
+  position: relative;
+  margin-top: 1rem;
+  padding-bottom: 1.5rem;
+}
+.course-empty {
+  padding: 2rem 0 1rem;
+  max-width: 34rem;
+}
+.lane {
+  position: relative;
+  height: 2.75rem;
+  border-bottom: 1px dashed rgb(255 255 255 / 0.28);
+}
+.boat {
+  position: absolute;
+  bottom: -1px;
+  display: flex;
+  align-items: flex-end;
+  transform: translateX(-50%);
+  transition: left 1.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.boat .ic {
+  width: 2rem;
+  height: 2rem;
+}
+.boat span {
+  position: absolute;
+  left: calc(100% + 0.6rem);
+  bottom: 0.2rem;
+  white-space: nowrap;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+.boat span {
+  transition: opacity 0.3s;
+}
+.sailing .boat span {
+  opacity: 0;
+}
+.boat.flip span {
+  left: auto;
+  right: calc(100% + 0.6rem);
+}
+/* Votre bateau porte le seul pavillon menthe de la course. */
+.lane.me .boat::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -0.15rem;
+  width: 0.7rem;
+  height: 0.5rem;
+  border-radius: 1px 4px 4px 1px;
+  background: var(--mint);
+}
+.start {
+  position: absolute;
+  top: 0;
+  bottom: 1.5rem;
+  border-left: 2px solid rgb(255 255 255 / 0.55);
+}
+.start span {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  transform: translateX(-50%);
+  padding-top: 0.2rem;
+  font-size: 0.8125rem;
+  opacity: 0.85;
+}
+.record {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  margin-top: 2rem;
+}
+.record h2,
+.section {
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+.record aside h2 {
+  margin-bottom: 0.6rem;
+}
+.record aside h2:not(:first-child) {
+  margin-top: 2rem;
+}
+.record aside p {
+  margin-bottom: 0.6rem;
+  color: var(--ink-soft);
+}
+.lb {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.lb th {
+  padding: 0 0.5rem 0.6rem;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: left;
+}
+.lb td {
+  padding: 0.75rem 0.5rem;
+  border-top: 1px solid var(--line);
+}
+.lb td:first-child {
+  width: 3.5rem;
+  font: 800 1.0625rem/1 var(--display);
+}
+.lb th:nth-child(n + 3),
+.lb td:nth-child(n + 3) {
+  text-align: right;
+}
+.lb td:last-child {
+  font-weight: 700;
+}
+.lb tr.me td {
+  background: color-mix(in srgb, var(--link) 8%, transparent);
+}
+.you,
+.empty {
+  color: var(--ink-soft);
+}
+.you {
+  font-size: 0.875rem;
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.25rem;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+.tag .ic,
+.prose .ic {
+  padding: 0.15rem;
+  border-radius: 5px;
+  background: var(--sea);
+  vertical-align: middle;
+}
+.feed li {
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--line);
+  color: var(--ink-soft);
+}
+.feed li b {
+  color: var(--ink);
+}
+.hof {
+  margin-top: 2rem;
+  color: var(--ink-soft);
+}
+.hof h2 {
+  margin-bottom: 0.5rem;
+  color: var(--ink);
+}
+.section {
+  margin: 2.5rem 0 1rem;
+}
+.lobby {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 1.5rem 1.25rem;
+}
+.tile-game {
+  display: flex;
+  flex-direction: column;
+  color: var(--ink);
+  text-decoration: none;
+}
+.tile-game .ic {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  padding: 11% 30%;
+  border-radius: 14px;
+  background: linear-gradient(170deg, var(--sea) 30%, var(--sea-deep) 100%);
+}
+.tile-game:hover .ic {
+  background: var(--sea-hover);
+}
+.tile-game b {
+  margin-top: 0.7rem;
+  font: 800 1.0625rem/1.2 var(--display);
+}
+.tile-game span {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+/* --- Cadre d'un jeu : réglages sur papier, partie sur la mer ---------------- */
+
+.game {
+  display: grid;
+  grid-template-columns: 18rem minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+  min-width: 0;
+}
+.panel {
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.panel > .btn + .btn {
+  margin-top: 0.6rem;
+}
+.lastwin {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+.lastwin b {
+  display: block;
+  color: var(--ink);
+  font: 800 1.2rem/1.3 var(--display);
+  font-variant-numeric: tabular-nums;
+}
+.lastwin small {
+  display: block;
+  font-size: 0.875rem;
+}
+.stage {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 30rem;
+  padding: clamp(1rem, 2.5vw, 1.75rem);
+  border-radius: 14px;
+  background: linear-gradient(170deg, var(--sea) 30%, var(--sea-deep) 100%);
+  color: #fff;
+}
+.stage .field label {
+  color: rgb(255 255 255 / 0.85);
+}
+.stage .readout {
+  border: 0;
+  background: var(--veil);
+  color: #fff;
+}
+.winline {
+  min-height: 1.6rem;
+  text-align: center;
+  font: 700 1.0625rem/1.5 var(--display);
+  font-variant-numeric: tabular-nums;
+}
+.winline .ic {
+  vertical-align: -0.25em;
+}
+.history {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  min-height: 1.9rem;
+  overflow: hidden;
+}
+.history span {
+  padding: 0.15rem 0.65rem;
+  border: 1px solid rgb(255 255 255 / 0.5);
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.history .win {
+  border-color: #fff;
+  background: #fff;
+  color: #0b2a94;
+}
+.rules {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+}
+.rules summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.prose {
+  max-width: 44rem;
+  color: var(--ink-soft);
+}
+.prose p {
+  margin-top: 0.75rem;
+}
+.prose b {
+  color: var(--ink);
+}
+.prose table {
+  margin-top: 0.75rem;
+  border-collapse: collapse;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.prose td {
+  padding: 0.3rem 1.5rem 0.3rem 0;
+  white-space: nowrap;
+}
+.prose td .ic {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+/* --- Machines à sous --------------------------------------------------------- */
+
+.slot-stage {
+  justify-content: flex-start;
+  min-width: 0;
+}
+.slot-head h1 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+.slot-head p {
+  max-width: 36rem;
+  opacity: 0.88;
+}
+.hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-height: 2.1rem;
+}
+.hud > span {
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  background: var(--veil);
+  font-size: 0.875rem;
+}
+.hud b {
+  display: inline-block;
+  margin-left: 0.3rem;
+  font: 800 1rem/1 var(--display);
+  font-variant-numeric: tabular-nums;
+}
+.frame {
+  position: relative;
+  width: 100%;
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 0.4rem;
+  border-radius: 14px;
+  background: rgb(4 18 82 / 0.4);
+}
+.reels {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  min-width: 0;
+}
+/* Un rouleau est une fenêtre sur une bande de symboles qui défile. */
+.reel {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1 / var(--rows);
+  border-radius: 10px;
+}
+.strip {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+.cell {
+  flex: none;
+  aspect-ratio: 1;
+  padding: 0.2rem;
+}
+.sym {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.09);
+  font: 900 clamp(1.5rem, 4.4vw, 3.1rem) / 1 var(--display);
+  letter-spacing: -0.04em;
+  user-select: none;
+}
+.sym span {
+  display: grid;
+  place-items: center;
+}
+.sym .ic {
+  width: 1.3em;
+  height: 1.3em;
+}
+.sym.rank span,
+.sym.low span {
+  opacity: 0.8;
+}
+.sym.low .ic {
+  width: 1.1em;
+  height: 1.1em;
+}
+.sym em {
+  margin-top: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: #fff;
+  color: #0b2a94;
+  font: 700 clamp(0.6rem, 1.1vw, 0.8125rem) / 1.4 var(--body);
+  font-style: normal;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* La menthe ne sert qu'aux symboles spéciaux, aux cases gagnantes et au suspense. */
+.sym.wild em,
+.sym.scatter em {
+  background: var(--mint);
+}
+.reel.spinning .sym {
+  filter: blur(1.5px);
+}
+.reel.tease {
+  box-shadow: inset 0 0 0 3px var(--mint);
+}
+.cell.win .sym,
+.cell.collect .sym {
+  background: rgb(255 255 255 / 0.24);
+  box-shadow: inset 0 0 0 3px var(--mint);
+}
+.cell.pulse .sym {
+  animation: pulse 0.5s;
+}
+.cell.pop .sym {
+  animation: pop 0.3s forwards;
+}
+.cell.fall {
+  animation: fall 0.36s cubic-bezier(0.3, 1.3, 0.5, 1);
+}
+.cell.spawn .sym {
+  animation: spawn 0.45s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+.fly {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 40;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: #fff;
+  color: #0b2a94;
+  font: 700 0.875rem/1.4 var(--body);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.fly.ball {
+  display: grid;
+  place-items: center;
+  min-width: 3.25rem;
+  height: 3.25rem;
+  font: 900 1.05rem/1 var(--display);
+}
+/* L'hameçon descend au bout de sa ligne, puis remonte avec le rouleau. */
+.hookline {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 16%;
+  z-index: 2;
+  width: 2px;
+  background: #fff;
+  transform-origin: top;
+  animation: drop 0.6s ease-out both;
+}
+.hookline .ic {
+  position: absolute;
+  left: -1.05rem;
+  bottom: -1.7rem;
+  width: 2rem;
+  height: 2rem;
+}
+.hookline.up {
+  animation: lift 0.5s ease-in forwards;
+}
+.boom {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgb(8 28 102 / 0.85);
+  animation: boom 0.7s both;
+}
+.boom .ic {
+  width: 5.5rem;
+  height: 5.5rem;
+}
+.under {
+  display: flex;
+  justify-content: center;
+  min-height: 3.25rem;
+}
+/* Le compteur de pêcheurs : quatre par palier. */
+.meter {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.meter-step {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--veil);
+}
+.meter i {
+  display: grid;
+  opacity: 0.3;
+}
+.meter i.on {
+  opacity: 1;
+}
+.meter .ic {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+.meter b {
+  margin-left: 0.4rem;
+  font: 800 1rem/1 var(--display);
+}
+.meter-step.done b {
+  color: var(--mint);
+}
+/* Le canon et sa chaîne de boulets. */
+.trail {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.cannon .ic {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+.cannon.fire {
+  animation: recoil 0.25s;
+}
+.trail b {
+  display: grid;
+  place-items: center;
+  min-width: 3rem;
+  height: 3rem;
+  padding: 0 0.6rem;
+  border: 2px solid rgb(255 255 255 / 0.4);
+  border-radius: 999px;
+  font: 800 0.9375rem/1 var(--display);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+.trail b.on {
+  border-color: #fff;
+  background: #fff;
+  color: #0b2a94;
+  opacity: 1;
+  animation: bump 0.35s;
+}
+.trail b.jump {
+  box-shadow: 0 0 0 3px var(--mint);
+}
+.buy-title {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.buy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  height: auto;
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  text-align: left;
+  white-space: normal;
+}
+.buy small {
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+.buy.armed {
+  border-color: var(--link);
+  background: color-mix(in srgb, var(--link) 12%, transparent);
+}
+.toggle {
+  align-items: flex-start;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+}
+.toggle input {
+  flex: none;
+  margin-top: 0.15rem;
+}
+.banner {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgb(8 28 102 / 0.9);
+  animation: fade 0.25s;
+}
+.banner div {
+  text-align: center;
+  font: 900 clamp(1.75rem, 5vw, 3rem) / 1.1 var(--display);
+  letter-spacing: -0.035em;
+}
+.banner strong {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 1.35em;
+  font-variant-numeric: tabular-nums;
+}
+.banner small {
+  display: block;
+  margin-top: 0.6rem;
+  font: 400 1.0625rem/1.4 var(--body);
+  letter-spacing: 0;
+  opacity: 0.9;
+}
+.slot-stage.bonus {
+  background: linear-gradient(170deg, var(--sea-deep) 10%, #061552 100%);
+}
+/* Chaque machine choisit son motif marin : ici la houle de la pêche. */
+[data-game='bass'] .stage::before {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' fill='none' stroke='%23fff' stroke-width='1.4'%3E%3Cpath d='M0 12q12.5-9 25 0t25 0 25 0 25 0'/%3E%3C/svg%3E") 0 100% / 12rem 2.9rem repeat-x,
+    radial-gradient(#fff 1px, transparent 1.6px) 0 0 / 1.75rem 1.75rem;
+}
+/* Un voile sombre en haut des décors illustrés, pour que le titre et les compteurs restent
+   lisibles quel que soit le ciel. */
+.scene::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgb(5 18 71 / 0.62), rgb(5 18 71 / 0.28) 9rem, transparent 15rem),
+    linear-gradient(transparent calc(100% - 9rem), rgb(5 18 71 / 0.6));
+}
+
+/* Sous la grille, chaque ligne garde sa hauteur qu'elle soit vide ou pleine : la scène
+   ne doit pas grandir quand un gain s'affiche. */
+.slot-stage .winline {
+  text-shadow: 0 1px 0 #051247, 0 0 0.75rem #051247;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3em;
+  flex: none;
+  height: 2.25rem;
+  min-height: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.slot-stage .hud {
+  flex: none;
+  height: 2.4rem;
+  min-height: 0;
+  overflow: hidden;
+}
+.slot-stage .tally {
+  flex: none;
+  height: 3.1rem;
+  align-items: center;
+}
+
+/* Le gain du tour, en grand sous la grille. */
+.tally {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.6rem;
+  margin: -0.25rem auto 0;
+  padding: 0.3rem 1.1rem 0.4rem;
+  border-radius: 999px;
+  background: rgb(4 13 60 / 0.78);
+  transform-origin: 50% 50%;
+}
+/* Vide, il garde sa place. */
+.tally.idle {
+  visibility: hidden;
+}
+.tally small {
+  font-size: 0.875rem;
+  opacity: 0.85;
+}
+.tally b {
+  color: var(--mint);
+  font: 900 clamp(1.5rem, 3.4vw, 2.25rem) / 1.1 var(--display);
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.tally.bump {
+  animation: tally 0.3s;
+}
+.hud > span:last-child b {
+  font-size: 1.1875rem;
+}
+
+/* --- Big Catch ----------------------------------------------------------------- */
+/* Un matin en mer, illustré ; les tours gratuits se jouent sous la surface. Le jaune du
+   ciré est la couleur de cette machine : le pêcheur, et la valeur de ce qu'il ramasse. */
+
+[data-game='bass'] .stage {
+  background: #1443d6;
+}
+[data-game='bass'] .stage::before {
+  display: none;
+}
+[data-game='bass'] .slot-head {
+  text-shadow: 0 1px 0 rgb(5 18 71 / 0.45);
+}
+[data-game='bass'] .slot-head h1 span {
+  color: var(--oilskin);
+}
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: url('/art/bass/stage.webp') 80% 100% / cover no-repeat;
+}
+.backdrop.deep {
+  overflow: hidden;
+  background-image: url('/art/bass/stage-bonus.webp');
+  background-position: center;
+  opacity: 0;
+  transition: opacity 0.9s;
+}
+.bonus .backdrop.deep {
+  opacity: 1;
+}
+/* Des bulles montent pendant la plongée. */
+.backdrop.deep b {
+  position: absolute;
+  bottom: -1rem;
+  left: calc(6% + var(--i, 0) * 11%);
+  width: 0.7rem;
+  height: 0.7rem;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  opacity: 0;
+}
+.bonus .backdrop.deep b {
+  animation: rise 6s linear infinite;
+}
+.backdrop.deep b:nth-child(2) { --i: 1; animation-delay: 2.1s; animation-duration: 7.5s; width: 0.45rem; height: 0.45rem; }
+.backdrop.deep b:nth-child(3) { --i: 2; animation-delay: 4s; }
+.backdrop.deep b:nth-child(4) { --i: 3; animation-delay: 1s; animation-duration: 8s; width: 1rem; height: 1rem; }
+.backdrop.deep b:nth-child(5) { --i: 4; animation-delay: 3.3s; width: 0.45rem; height: 0.45rem; }
+.backdrop.deep b:nth-child(6) { --i: 5; animation-delay: 0.4s; animation-duration: 7s; }
+.backdrop.deep b:nth-child(7) { --i: 6; animation-delay: 5s; width: 0.9rem; height: 0.9rem; }
+.backdrop.deep b:nth-child(8) { --i: 7; animation-delay: 2.7s; animation-duration: 6.5s; width: 0.45rem; height: 0.45rem; }
+.backdrop.deep b:nth-child(9) { --i: 8; animation-delay: 1.6s; }
+[data-game='bass'] .frame {
+  padding: 0.5rem;
+  background: rgb(6 22 92 / 0.86);
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.2), 0 1rem 2.5rem rgb(3 10 46 / 0.4);
+}
+[data-game='bass'] .sym {
+  background: rgb(255 255 255 / 0.08);
+}
+[data-game='bass'] .sym span {
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  opacity: 1;
+}
+[data-game='bass'] .sym.rank {
+  background: rgb(255 255 255 / 0.04);
+}
+[data-game='bass'] .sym.rank span {
+  color: #cfe0ff;
+}
+.sym.fish .art {
+  width: 70%;
+  height: 70%;
+}
+/* La valeur d'un poisson porte le jaune : c'est ce que le pêcheur vient chercher. */
+[data-game='bass'] .sym.fish em {
+  margin: -0.4rem 0 0.3rem;
+  background: var(--oilskin);
+}
+[data-game='bass'] .cell.win .art {
+  animation: breathe 0.7s ease-in-out infinite;
+}
+.cell.caught .art {
+  animation: caught 0.4s;
+}
+.sym em.bump {
+  animation: bump 0.25s;
+}
+.fly.catch {
+  background: var(--oilskin);
+  font-weight: 800;
+}
+/* Les lignes gagnantes, tracées sur la grille. */
+.lines {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.lines polyline {
+  fill: none;
+  stroke: var(--mint);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  filter: drop-shadow(0 2px 0 rgb(3 10 46 / 0.55));
+  animation: draw 0.4s ease-out both;
+}
+.hookline .art {
+  position: absolute;
+  left: -1.5rem;
+  bottom: -2.4rem;
+  width: 3rem;
+  height: 3rem;
+}
+.boom .art {
+  width: min(42%, 11rem);
+  height: auto;
+  animation: pulse 0.3s 2;
+}
+[data-game='bass'] .under {
+  min-height: 7.5rem;
+}
+[data-game='bass'] .hero {
+  width: 8rem;
+}
+[data-game='bass'] .meter {
+  align-self: center;
+  justify-content: flex-end;
+}
+[data-game='bass'] .meter-step {
+  background: rgb(4 13 60 / 0.72);
+}
+.meter .art {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+[data-game='bass'] .meter-step {
+  padding: 0.3rem 0.55rem;
+}
+.meter-step.done b {
+  color: var(--oilskin);
+}
+
+/* --- Mort ou Vif ---------------------------------------------------------------- */
+/* Le port à l'aube. Le rose est la couleur de cette machine : le duel, son multiplicateur. */
+
+[data-game='bounty'] .stage {
+  background: #0a2480;
+}
+[data-game='bounty'] .stage::before {
+  display: none;
+}
+[data-game='bounty'] .slot-head h1 span {
+  color: var(--dawn);
+}
+/* Pendant un bonus, le jour se lève tout à fait. */
+.dusk {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent 35%, rgb(255 143 192 / 0.32));
+  opacity: 0;
+  transition: opacity 0.9s;
+}
+.bonus .dusk {
+  opacity: 1;
+}
+[data-game='bounty'] .slot-stage {
+  --chrome: 33.5rem;
+  --frame-w: min(100%, 44rem, max(15rem, calc(100vh - var(--chrome))));
+}
+.immersive [data-game='bounty'] .slot-stage {
+  --frame-w: min(100%, max(20rem, calc(100vh - 21rem)));
+}
+[data-game='bounty'] .slot-stage .frame {
+  width: 100%;
+  max-width: var(--frame-w);
+  margin-inline: auto;
+  padding: 0.4rem;
+  background: rgb(4 13 60 / 0.84);
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.18), 0 1rem 2.5rem rgb(3 10 46 / 0.45);
+}
+[data-game='bounty'] .under {
+  min-height: 0;
+}
+[data-game='bounty'] .cell {
+  padding: 0.15rem;
+}
+[data-game='bounty'] .sym {
+  background: rgb(255 255 255 / 0.07);
+  font-size: clamp(1.2rem, 3vw, 2.2rem);
+}
+[data-game='bounty'] .sym span {
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  opacity: 1;
+}
+[data-game='bounty'] .sym.rank {
+  background: rgb(255 255 255 / 0.04);
+}
+[data-game='bounty'] .sym.rank span {
+  color: #cfe0ff;
+}
+[data-game='bounty'] .sym em {
+  margin: -0.3rem 0 0.2rem;
+  font-size: clamp(0.5rem, 0.9vw, 0.6875rem);
+}
+.sym.vs em {
+  background: var(--dawn);
+}
+/* Un duel qui ne participe à aucun gain reste un simple symbole, en retrait. */
+.cell.idle .sym {
+  opacity: 0.45;
+}
+.sym.empty {
+  background: rgb(255 255 255 / 0.03);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+}
+.sym.token {
+  background: var(--dawn);
+  color: #081547;
+}
+[data-game='bounty'] .cell.win .art {
+  animation: breathe 0.7s ease-in-out infinite;
+}
+.reels.deal {
+  animation: pulse 0.35s;
+}
+/* Les wilds tenus en place, posés par-dessus les rouleaux. */
+.pinned {
+  position: absolute;
+  inset: 0.4rem;
+  z-index: 1;
+  pointer-events: none;
+}
+.pin {
+  position: absolute;
+  width: 20%;
+  height: 20%;
+  padding: 0.15rem;
+  animation: spawn 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+.pin .sym {
+  background: #10319e;
+  box-shadow: inset 0 0 0 2px var(--mint);
+}
+/* Le rouleau du duel : deux duellistes, leurs multiplicateurs, puis celui qui reste. */
+.duelreel {
+  position: absolute;
+  inset: 0.15rem;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.2rem;
+  border-radius: 10px;
+  background: linear-gradient(#0c2a9c, #051247 45%, #051247 55%, #0c2a9c);
+  box-shadow: inset 0 0 0 3px var(--dawn);
+  overflow: hidden;
+  animation: unfurl 0.35s cubic-bezier(0.2, 1.2, 0.4, 1);
+}
+.duelreel .dl {
+  display: grid;
+  justify-items: center;
+  width: 100%;
+  transition: opacity 0.3s, transform 0.3s, filter 0.3s;
+}
+.duelreel .dl .pic {
+  width: 86%;
+}
+.duelreel .dl b {
+  margin-top: -0.3rem;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: #fff;
+  color: #081547;
+  font: 800 clamp(0.75rem, 1.6vw, 1.0625rem) / 1.3 var(--display);
+}
+.duelreel .dl.b {
+  flex-direction: column-reverse;
+}
+.duelreel strong {
+  font: 900 clamp(1.4rem, 3.6vw, 2.75rem) / 1 var(--display);
+  letter-spacing: -0.04em;
+  color: var(--dawn);
+  text-shadow: 0 0.08em 0 #030a2e;
+  opacity: 0;
+  transform: scale(0.3);
+  transition: opacity 0.2s, transform 0.35s cubic-bezier(0.2, 1.8, 0.4, 1);
+}
+.duelreel.shot strong {
+  opacity: 1;
+  transform: scale(1);
+}
+.duelreel.shot .dl.out {
+  opacity: 0.25;
+  filter: grayscale(1);
+  transform: scale(0.82) rotate(-8deg);
+}
+.duelreel.shot .dl:not(.out) b {
+  background: var(--dawn);
+}
+
+/* --- Neptune, Le Récif, Chiens de bord ------------------------------------------- */
+
+:is([data-game='neptune'], [data-game='reef'], [data-game='dogs']) .stage {
+  background: #0a2480;
+}
+:is([data-game='neptune'], [data-game='reef'], [data-game='dogs']) .stage::before {
+  display: none;
+}
+[data-game='neptune'] .slot-head h1 span {
+  color: var(--orb);
+}
+[data-game='reef'] .slot-head h1 span {
+  color: var(--lagoon);
+}
+[data-game='dogs'] .slot-head h1 span {
+  color: var(--medal);
+}
+:is([data-game='neptune'], [data-game='reef'], [data-game='dogs']) .slot-head {
+  text-shadow: 0 1px 0 rgb(5 18 71 / 0.5);
+}
+/* Pendant les tours gratuits, la couleur de la machine monte du bas de la scène. */
+.glow {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.9s;
+}
+[data-game='neptune'] .glow {
+  background: linear-gradient(transparent 40%, rgb(185 156 255 / 0.3));
+}
+[data-game='reef'] .glow {
+  background: linear-gradient(transparent 40%, rgb(79 227 224 / 0.26));
+}
+[data-game='dogs'] .glow {
+  background: linear-gradient(transparent 40%, rgb(255 166 77 / 0.24));
+}
+.bonus .glow {
+  opacity: 1;
+}
+/* Six rouleaux de cinq : la grille est presque carrée. */
+:is([data-game='neptune'], [data-game='reef']) .slot-stage {
+  --chrome: 33.5rem;
+  --frame-w: min(100%, 50rem, max(15rem, calc((100vh - var(--chrome)) * 1.2)));
+}
+.immersive :is([data-game='neptune'], [data-game='reef']) .slot-stage {
+  --frame-w: min(100%, max(20rem, calc((100vh - 21rem) * 1.2)));
+}
+[data-game='dogs'] .slot-stage {
+  --chrome: 33.5rem;
+  --frame-w: min(100%, 72rem, max(15rem, calc((100vh - var(--chrome)) * 1.6667)));
+}
+:is([data-game='neptune'], [data-game='reef'], [data-game='dogs']) .slot-stage .frame {
+  width: 100%;
+  max-width: var(--frame-w);
+  margin-inline: auto;
+  padding: 0.4rem;
+  background: rgb(4 13 60 / 0.84);
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.18), 0 1rem 2.5rem rgb(3 10 46 / 0.45);
+}
+:is([data-game='neptune'], [data-game='reef'], [data-game='dogs']) .under {
+  min-height: 0;
+}
+:is([data-game='neptune'], [data-game='reef']) .cell {
+  padding: 0.12rem;
+}
+:is([data-game='neptune'], [data-game='reef'], [data-game='dogs']) .sym {
+  background: rgb(255 255 255 / 0.07);
+}
+:is([data-game='neptune'], [data-game='reef'], [data-game='dogs']) .sym span {
+  position: relative;
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  opacity: 1;
+}
+:is([data-game='neptune'], [data-game='reef']) .sym em {
+  margin: -0.35rem 0 0.15rem;
+  font-size: clamp(0.45rem, 0.85vw, 0.625rem);
+}
+/* Le multiplicateur : sa valeur est écrite sur l'orbe. */
+.sym.orb b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #081547;
+  font: 900 clamp(0.7rem, 1.7vw, 1.2rem) / 1 var(--display);
+  letter-spacing: -0.04em;
+}
+[data-game='neptune'] .cell.win .art,
+[data-game='reef'] .cell.win .art,
+[data-game='dogs'] .cell.win .art {
+  animation: breathe 0.7s ease-in-out infinite;
+}
+.tumble-mult {
+  text-shadow: 0 0.09em 0 #081547;
+}
+[data-game='neptune'] .tumble-mult {
+  color: var(--orb);
+}
+[data-game='reef'] ~ .tumble-mult,
+.tumble-mult.lagoon {
+  color: var(--lagoon);
+}
+/* Chiens de bord. */
+[data-game='dogs'] .sym.rank {
+  background: rgb(255 255 255 / 0.04);
+}
+[data-game='dogs'] .sym.rank span {
+  color: #cfe0ff;
+}
+[data-game='dogs'] .sym.wild em {
+  margin: -0.5rem 0 0.3rem;
+  background: var(--medal);
+  font-weight: 800;
+}
+.pinned.rows3 .pin {
+  height: 33.333%;
+  padding: 0.2rem;
+}
+/* Les neuf tonneaux qui donnent le nombre de tours gratuits. */
+.barrels p {
+  margin: 0 0 1.2rem;
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+}
+.barrel-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 4.25rem);
+  gap: 0.6rem;
+  justify-content: center;
+}
+.banner .barrel-grid b {
+  display: grid;
+  place-items: center;
+  height: 4.25rem;
+  border-radius: 50% / 22%;
+  background: #fff;
+  color: #081547;
+  box-shadow: inset 0 0.45rem 0 #cfe0ff, inset 0 -0.45rem 0 #cfe0ff;
+  font: 900 1.75rem/1 var(--display);
+}
+.banner .barrel-grid b.open {
+  animation: spawn 0.3s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+.banner .barrel-grid b.n3 {
+  background: var(--medal);
+  box-shadow: none;
+}
+.banner .barrels strong {
+  margin-top: 1rem;
+  font-size: clamp(3rem, 9vw, 5rem);
+}
+
+/* --- Barbe-Rouge --------------------------------------------------------------- */
+/* Sa machine est une nuit en mer, illustrée : le pont, la lune et son trois-mâts, la
+   houle, et le capitaine près de son canon. Le rouge est le sien et ne sert qu'ici. */
+
+[data-game='beard'] .stage {
+  background: #0a2480;
+}
+[data-game='beard'] .stage::before {
+  display: none;
+}
+[data-game='beard'] .slot-head {
+  padding-right: 22%;
+  text-shadow: 0 1px 0 rgb(5 18 71 / 0.5);
+}
+[data-game='beard'] .slot-head h1 span {
+  color: var(--beard);
+}
+.scene {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.night {
+  position: absolute;
+  inset: 0;
+  /* Cadrée à droite : la lune et son trois-mâts restent visibles quand la scène est étroite. */
+  background: url('/art/beard/stage.webp') 86% 100% / cover no-repeat;
+}
+/* L'abordage : la nuit tombe tout à fait et la lune rougit. */
+.night.boarding {
+  background-image: url('/art/beard/stage-bonus.webp');
+  opacity: 0;
+  transition: opacity 0.9s;
+}
+.bonus .night.boarding {
+  opacity: 1;
+}
+[data-game='beard'] .frame {
+  padding: 0.5rem;
+  background: rgb(4 13 60 / 0.82);
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.18), 0 1rem 2.5rem rgb(3 10 46 / 0.45);
+}
+[data-game='beard'] .sym {
+  background: rgb(255 255 255 / 0.07);
+}
+[data-game='beard'] .sym.crew {
+  background: rgb(255 255 255 / 0.13);
+}
+[data-game='beard'] .sym span {
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  opacity: 1;
+}
+.art {
+  display: block;
+  width: 86%;
+  height: 86%;
+  object-fit: contain;
+  user-select: none;
+}
+.sym.low .art {
+  width: 74%;
+  height: 74%;
+}
+.sym.wild .art,
+.sym.scatter .art {
+  width: 78%;
+  height: 78%;
+}
+.sym.wild em,
+.sym.scatter em {
+  margin: -0.35rem 0 0.3rem;
+}
+.winline .art {
+  display: inline-block;
+  width: 1.7em;
+  height: 1.7em;
+  vertical-align: -0.5em;
+}
+.prose .art {
+  display: inline-block;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0.15rem;
+  border-radius: 6px;
+  background: var(--sea-deep);
+  vertical-align: middle;
+}
+/* Une case gagnante respire tant qu'elle est marquée ; touchée par le boulet, elle claque. */
+[data-game='beard'] .cell.win .art {
+  animation: breathe 0.7s ease-in-out infinite;
+}
+.cell.hit .sym {
+  animation: hit 0.32s;
+}
+[data-game='beard'] .cell.pop .sym {
+  animation: shatter 0.34s forwards;
+}
+[data-game='beard'] .cell.fall {
+  animation: fall 0.4s cubic-bezier(0.3, 1.4, 0.5, 1) backwards;
+}
+.cell.spawn,
+.cell.pulse {
+  position: relative;
+}
+.cell.spawn::after,
+.cell.pulse::after {
+  content: '';
+  position: absolute;
+  inset: 12%;
+  border: 3px solid var(--mint);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: ring 0.55s ease-out forwards;
+}
+/* Le pont, de la largeur de la grille : à gauche le capitaine et son canon, pointé vers
+   la grille ; à droite les boulets qui attendent. */
+[data-game='beard'] .under {
+  min-height: 7.5rem;
+}
+.deck {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+}
+.battery {
+  display: flex;
+  align-items: flex-end;
+}
+.hero {
+  flex: none;
+  width: 8.5rem;
+  margin-bottom: -1.1rem;
+  transform-origin: 50% 100%;
+  animation: bob 3.6s ease-in-out infinite;
+}
+.hero .art,
+.barrel .art {
+  width: 100%;
+  height: auto;
+}
+.hero.order {
+  animation: order 0.5s;
+}
+.hero.cheer {
+  animation: cheer 0.9s;
+}
+/* Le canon pivote sur son affût pour viser ; le fût seul recule au départ du coup. */
+.deck .cannon {
+  position: relative;
+  z-index: 3;
+  flex: none;
+  width: 7rem;
+  margin: 0 0 -0.4rem -1.2rem;
+  transform-origin: 38% 72%;
+  transition: transform 0.24s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+.barrel {
+  position: relative;
+  display: block;
+}
+.barrel.fire {
+  animation: recoil 0.5s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+/* La mèche : une étincelle qui tremble, et qui enfle juste avant le coup. */
+.spark {
+  position: absolute;
+  left: -2%;
+  top: 4%;
+  width: 22%;
+  aspect-ratio: 1;
+  background: var(--beard);
+  clip-path: polygon(50% 0, 62% 36%, 100% 50%, 62% 64%, 50% 100%, 38% 64%, 0 50%, 38% 36%);
+  animation: flicker 0.45s steps(2) infinite;
+}
+.cannon.lit .spark {
+  animation: flare 0.32s ease-in;
+}
+/* La bouche du canon, d'où part le boulet. */
+.muzzle {
+  position: absolute;
+  left: 88%;
+  top: 20%;
+  width: 0;
+  height: 0;
+}
+/* Le calque des effets : boulet, fumée, éclats. */
+.fx {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+[data-game='beard'] .trail b {
+  border-color: rgb(255 255 255 / 0.55);
+  background: rgb(4 13 60 / 0.7);
+  opacity: 1;
+}
+[data-game='beard'] .trail b.on {
+  border-color: var(--beard);
+  background: var(--beard);
+  color: #081547;
+}
+.trail.advance b {
+  animation: advance 0.3s cubic-bezier(0.2, 1.3, 0.4, 1);
+}
+.trail.advance b.on {
+  animation: advance 0.3s cubic-bezier(0.2, 1.3, 0.4, 1), bump 0.35s 0.25s;
+}
+/* Les éclats d'un impact. */
+.blast {
+  position: fixed;
+  z-index: 41;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.blast::before {
+  content: '';
+  position: absolute;
+  left: -2.5rem;
+  top: -2.5rem;
+  width: 5rem;
+  height: 5rem;
+  border: 5px solid #fff;
+  border-radius: 50%;
+  animation: ring 0.5s ease-out forwards;
+}
+.blast i {
+  position: absolute;
+  left: -0.3rem;
+  top: -0.3rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: #fff;
+  animation: spark 0.6s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
+}
+.blast i:nth-child(3n) {
+  background: var(--beard);
+}
+.blast.small::before {
+  display: none;
+}
+.blast.small i {
+  width: 0.4rem;
+  height: 0.4rem;
+  background: #fff;
+}
+/* Le multiplicateur, frappé là où le boulet est tombé. */
+.hitmult {
+  position: fixed;
+  z-index: 42;
+  color: #fff;
+  font: 900 clamp(3rem, 7vw, 5.5rem) / 1 var(--display);
+  letter-spacing: -0.04em;
+  -webkit-text-stroke: 0.09em #081547;
+  paint-order: stroke fill;
+  text-shadow: 0 0.09em 0 var(--beard);
+  pointer-events: none;
+  animation: hitmult 1.05s forwards;
+}
+.stage.shake > :not(.scene, .banner) {
+  animation: shake 0.36s;
+}
+/* La roue de l'achat au hasard : la barre du navire. */
+.fortune p {
+  margin: 0 0 3rem;
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+}
+.wheel {
+  --size: min(20rem, 62vw);
+  position: relative;
+  width: var(--size);
+  height: var(--size);
+  margin: 0 auto;
+}
+.disc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px #fff;
+  background: conic-gradient(from -15deg, #1443d6 0 30deg, #fff 0 60deg, #1443d6 0 90deg, #0a2480 0 120deg, var(--beard) 0 150deg, #0a2480 0 180deg, #fff 0 210deg, #1443d6 0 240deg, #0a2480 0 270deg, #fff 0 300deg, #1443d6 0 330deg, #0a2480 0);
+  will-change: transform;
+}
+.disc b,
+.disc .peg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(var(--a));
+  pointer-events: none;
+}
+.disc b {
+  padding-top: 7%;
+  font: 900 clamp(1.1rem, 4.6vw, 1.75rem) / 1 var(--display);
+  letter-spacing: -0.03em;
+  text-align: center;
+}
+.disc .n10,
+.disc .n13 {
+  color: #081547;
+}
+/* La roue arrêtée : tout s'assombrit sauf la part tirée, puis le nombre sort en grand. */
+.wheel::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  z-index: 1;
+  border-radius: 50%;
+  background: conic-gradient(from calc(var(--slice, 0deg) - 15deg), transparent 0 30deg, rgb(3 10 46 / 0.78) 0);
+  opacity: 0;
+  transition: opacity 0.35s;
+  pointer-events: none;
+}
+.wheel.won::after {
+  opacity: 1;
+}
+.wheel.won .pointer {
+  z-index: 2;
+  animation: nod 0.5s 0.05s;
+}
+.prize {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  width: 62%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #fff;
+  color: #081547;
+  box-shadow: 0 0 0 0.45rem var(--mint), 0 1.25rem 3rem rgb(3 10 46 / 0.6);
+  animation: prize 0.6s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.banner .prize b {
+  font: 900 clamp(3.5rem, 13vw, 6.5rem) / 0.9 var(--display);
+  letter-spacing: -0.05em;
+}
+.banner .prize span {
+  font: 700 clamp(0.8rem, 2.4vw, 1.0625rem) / 1.2 var(--body);
+  letter-spacing: 0;
+}
+/* 13 tours : le lot rare porte la couleur du capitaine. */
+.prize.t2 {
+  background: var(--beard);
+  box-shadow: 0 0 0 0.45rem #fff, 0 1.25rem 3rem rgb(3 10 46 / 0.6);
+}
+.disc .peg::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -1.15rem;
+  width: 0.55rem;
+  height: 1.2rem;
+  margin-left: -0.275rem;
+  border-radius: 0.3rem;
+  background: #fff;
+}
+.hub {
+  position: absolute;
+  inset: 34%;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #081547;
+  box-shadow: 0 0 0 4px #fff;
+}
+.hub .art {
+  width: 74%;
+  height: 74%;
+}
+.pointer {
+  position: absolute;
+  left: 50%;
+  top: -1.9rem;
+  z-index: 1;
+  width: 1.5rem;
+  height: 1.9rem;
+  margin-left: -0.75rem;
+  background: var(--mint);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transform-origin: 50% 0;
+}
+.pointer.flick {
+  animation: flick 0.12s;
+}
+.sound {
+  height: 2.5rem;
+}
+
+/* --- Dés ---------------------------------------------------------------------- */
+
+.dice-stage {
+  justify-content: space-between;
+}
+.dice-track {
+  position: relative;
+  margin: 3.5rem 0 3.25rem;
+  padding: 1rem 1.1rem;
+  border-radius: 999px;
+  background: rgb(4 18 82 / 0.4);
+}
+.dice-track input {
+  display: block;
+  width: 100%;
+  height: 0.6rem;
+  margin: 0;
+  border-radius: 999px;
+  -webkit-appearance: none;
+  appearance: none;
+  /* La zone gagnante est pleine, la zone perdante reste creuse. */
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.22) var(--p), #fff var(--p));
+}
+.dice-track input.under {
+  background: linear-gradient(90deg, #fff var(--p), rgb(255 255 255 / 0.22) var(--p));
+}
+.dice-track input::-webkit-slider-thumb {
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 3px solid #fff;
+  border-radius: 8px;
+  background: #0b2a94;
+  cursor: grab;
+  -webkit-appearance: none;
+}
+.dice-track input::-moz-range-thumb {
+  width: 1.4rem;
+  height: 1.4rem;
+  border: 3px solid #fff;
+  border-radius: 8px;
+  background: #0b2a94;
+  cursor: grab;
+}
+.scale {
+  position: absolute;
+  left: 1.1rem;
+  right: 1.1rem;
+  top: -1.9rem;
+  display: flex;
+  justify-content: space-between;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+.dice-result {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  z-index: 1;
+  transform: translateX(-50%);
+  padding: 0.25rem 0.7rem;
+  border: 2px solid #fff;
+  border-radius: 8px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transition: left 0.25s cubic-bezier(0.2, 1.3, 0.5, 1);
+}
+.dice-result.win {
+  background: #fff;
+  color: #0b2a94;
+}
+.dice-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.dice-stats .field {
+  margin: 0;
+}
+.btn-like {
+  cursor: pointer;
+}
+
+/* --- Roulette ----------------------------------------------------------------- */
+
+.roulette-stage {
+  align-items: center;
+}
+.roulette-stage .history {
+  align-self: stretch;
+}
+.history .red {
+  border-color: var(--rouge);
+  background: var(--rouge);
+}
+.history .black {
+  border-color: var(--noir);
+  background: var(--noir);
+}
+.history .green {
+  border-color: var(--mint);
+  background: var(--mint);
+  color: #0b2a94;
+}
+.ball {
+  display: grid;
+  place-items: center;
+  width: 5.5rem;
+  height: 5.5rem;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  background: var(--veil);
+  font: 900 2.25rem/1 var(--display);
+  font-variant-numeric: tabular-nums;
+}
+.ball[data-color='red'] {
+  background: var(--rouge);
+}
+.ball[data-color='black'] {
+  background: var(--noir);
+}
+.ball[data-color='green'] {
+  background: var(--mint);
+  color: #0b2a94;
+}
+.ball.rolling {
+  border-style: dashed;
+}
+.ball.landed {
+  animation: land 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+.board {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  gap: 0.25rem;
+  width: 100%;
+  max-width: 48rem;
+}
+.rb {
+  position: relative;
+  min-height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: var(--veil);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.rb:hover {
+  filter: brightness(1.2);
+}
+.rb.red {
+  background: var(--rouge);
+}
+.rb.black {
+  background: var(--noir);
+}
+.rb.zero {
+  grid-row: span 3;
+  background: var(--mint);
+  color: #0b2a94;
+}
+.rb.w4 {
+  grid-column: span 4;
+}
+.rb.w2 {
+  grid-column: span 2;
+}
+.rb.hit {
+  z-index: 1;
+  outline: 3px solid #fff;
+  outline-offset: 1px;
+}
+.rb i {
+  position: absolute;
+  top: -0.4rem;
+  right: -0.25rem;
+  z-index: 2;
+  min-width: 1.3rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 999px;
+  background: #fff;
+  color: #0b2a94;
+  font-size: 0.6875rem;
+  font-style: normal;
+}
+.chips {
+  display: flex;
+  gap: 0.4rem;
+}
+.chips button {
+  flex: 1;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 2px solid var(--link);
+  border-radius: 50%;
+  background: none;
+  color: var(--link);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.chips button.on {
+  background: var(--sea);
+  border-color: var(--sea);
+  color: #fff;
+}
+
+/* --- Blackjack ---------------------------------------------------------------- */
+
+.bj-stage {
+  justify-content: space-between;
+}
+.bj-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+.bj-row h4 {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+.bj-row h4 b {
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.65rem;
+  border-radius: 999px;
+  background: var(--veil);
+}
+.bj-row h4 b:empty {
+  display: none;
+}
+.cards {
+  display: flex;
+  min-height: 6.5rem;
+}
+.cards .pcard {
+  display: flex;
+  flex-direction: column;
+  width: 4.5rem;
+  height: 6.5rem;
+  margin-left: -1.4rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: -2px 0 0 rgb(4 18 82 / 0.25);
+  color: #111730;
+  font: 800 1.4rem/1 var(--display);
+}
+/* Une carte qui arrive part de la main du croupier ; la carte cachée se retourne. */
+.cards .pcard.new {
+  animation: deal 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.1) backwards;
+}
+.cards .pcard.flip {
+  animation: flip 0.45s ease-out;
+}
+.cards .pcard:first-child {
+  margin-left: 0;
+  box-shadow: none;
+}
+.cards .pcard.red {
+  color: var(--rouge);
+}
+.cards .pcard span {
+  margin-top: 0.2rem;
+  font-size: 1.75rem;
+}
+.cards .pcard.back {
+  background: #0b2a94 url('/art/tables/card-back.webp') center / cover;
+  box-shadow: inset 0 0 0 2px #fff, -2px 0 0 rgb(4 18 82 / 0.25);
+}
+.bj-hands {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+}
+.bj-hand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border: 2px solid transparent;
+  border-radius: 14px;
+}
+.bj-hand.active {
+  border-color: #fff;
+}
+.bj-hand.win,
+.bj-hand.blackjack {
+  border-color: var(--mint);
+}
+.bj-hand.lose {
+  opacity: 0.6;
+}
+.bj-total {
+  padding: 0.1rem 0.75rem;
+  border-radius: 999px;
+  background: var(--veil);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.bj-total small {
+  margin-left: 0.4rem;
+  font-weight: 400;
+  opacity: 0.8;
+}
+.bj-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+/* --- Mines -------------------------------------------------------------------- */
+
+.mines-stage {
+  align-items: center;
+}
+.mines-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 28rem;
+}
+.tile {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.16);
+}
+.tile:not(:disabled):hover {
+  background: rgb(255 255 255 / 0.3);
+}
+.tile:disabled {
+  opacity: 1;
+}
+.tile.gem,
+.tile.bomb,
+.tile.dim {
+  background: rgb(4 18 82 / 0.4);
+  animation: land 0.25s;
+}
+.tile.dim .ic {
+  opacity: 0.35;
+}
+/* La case de la mine touchée. (Pas « boom » : cette classe est le voile de la dynamite
+   de Big Catch, qui couvre toute une scène.) */
+.mines-stage .tile.struck {
+  background: rgb(255 255 255 / 0.85);
+  box-shadow: inset 0 0 0 2px #fff;
+}
+.tile .ic {
+  width: 58%;
+  height: 58%;
+}
+
+/* --- Fenêtre et messages ------------------------------------------------------ */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(8 28 102 / 0.6);
+}
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  width: 100%;
+  max-width: 24rem;
+  padding: 1.75rem;
+  border-radius: 14px;
+  background: var(--surface);
+}
+.dialog h2 {
+  font-size: 1.5rem;
+  font-weight: 900;
+}
+.dialog p {
+  color: var(--ink-soft);
+}
+#toasts {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.toast {
+  max-width: 22rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--ground);
+  font-weight: 500;
+}
+
+/* --- Mouvements --------------------------------------------------------------- */
+
+@keyframes roll {
+  from {
+    transform: translateY(-8%);
+  }
+  to {
+    transform: translateY(8%);
+  }
+}
+@keyframes land {
+  from {
+    transform: translateY(-30%) scale(0.9);
+    opacity: 0.3;
+  }
+}
+@keyframes fall {
+  from {
+    transform: translateY(-120%);
+    opacity: 0;
+  }
+}
+@keyframes pop {
+  to {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+@keyframes pulse {
+  50% {
+    transform: scale(1.14);
+  }
+}
+@keyframes spawn {
+  from {
+    transform: scale(0) rotate(-90deg);
+  }
+}
+@keyframes drop {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes lift {
+  to {
+    transform: translateY(-34%);
+  }
+}
+@keyframes boom {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes recoil {
+  12% {
+    transform: translate(-1.3rem, 0.75rem) scale(0.94, 1.05);
+  }
+  55% {
+    transform: translate(0.2rem, -0.1rem);
+  }
+}
+@keyframes bump {
+  50% {
+    transform: scale(1.4);
+  }
+}
+@keyframes drift {
+  to {
+    background-position-x: -14rem;
+  }
+}
+@keyframes flinch {
+  35% {
+    transform: translateX(-0.3rem) rotate(-4deg);
+  }
+}
+@keyframes flash {
+  0% {
+    opacity: 1;
+    transform: scale(0.2);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.25) rotate(18deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.6) rotate(30deg);
+  }
+}
+@keyframes smoke {
+  0% {
+    opacity: 0.75;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--x, 1.2rem), var(--y, -2.2rem)) scale(2.8);
+  }
+}
+@keyframes ring {
+  from {
+    opacity: 1;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 0;
+    transform: scale(3.2);
+  }
+}
+@keyframes shake {
+  20% {
+    transform: translate(calc(var(--kick, 3px) * -1), var(--kick, 3px));
+  }
+  45% {
+    transform: translate(var(--kick, 3px), calc(var(--kick, 3px) * -0.6));
+  }
+  70% {
+    transform: translate(calc(var(--kick, 3px) * -0.5), calc(var(--kick, 3px) * 0.4));
+  }
+}
+@keyframes breathe {
+  50% {
+    transform: scale(1.08);
+  }
+}
+@keyframes hit {
+  30% {
+    transform: scale(1.16);
+    background: rgb(255 255 255 / 0.7);
+  }
+}
+@keyframes shatter {
+  40% {
+    transform: scale(1.2) rotate(6deg);
+  }
+  100% {
+    transform: scale(0.2) rotate(-18deg);
+    opacity: 0;
+  }
+}
+@keyframes bob {
+  50% {
+    transform: translateY(-0.2rem) rotate(-0.6deg);
+  }
+}
+@keyframes order {
+  35% {
+    transform: translateX(0.5rem) rotate(5deg) scale(1.04);
+  }
+}
+@keyframes cheer {
+  25%,
+  65% {
+    transform: translateY(-1rem) rotate(-3deg);
+  }
+  45%,
+  85% {
+    transform: translateY(0) rotate(2deg);
+  }
+}
+@keyframes flicker {
+  50% {
+    transform: scale(0.7) rotate(25deg);
+  }
+}
+@keyframes flare {
+  to {
+    transform: scale(2.2) rotate(90deg);
+  }
+}
+@keyframes spark {
+  from {
+    transform: rotate(var(--a)) translateX(0) scale(1.2);
+  }
+  to {
+    transform: rotate(var(--a)) translateX(var(--d)) scale(0);
+  }
+}
+@keyframes advance {
+  from {
+    transform: translateX(3.45rem);
+  }
+}
+@keyframes hitmult {
+  0% {
+    transform: translate(-50%, -50%) scale(2.6) rotate(-8deg);
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.4);
+  }
+  14% {
+    transform: translate(-50%, -50%) scale(0.92) rotate(-4deg);
+    opacity: 1;
+  }
+  22% {
+    transform: translate(-50%, -50%) scale(1.06) rotate(-4deg);
+  }
+  30%,
+  70% {
+    transform: translate(-50%, -50%) scale(1) rotate(-4deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -110%) scale(0.9) rotate(-4deg);
+    opacity: 0;
+  }
+}
+@keyframes prize {
+  0% {
+    transform: translate(-50%, -170%) scale(0.15) rotate(-25deg);
+    opacity: 0;
+  }
+  55% {
+    transform: translate(-50%, -50%) scale(1.12) rotate(3deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1) rotate(0);
+  }
+}
+@keyframes nod {
+  30% {
+    transform: translateY(0.5rem) scale(1.25);
+  }
+}
+@keyframes tally {
+  35% {
+    transform: scale(1.18);
+  }
+}
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+@keyframes caught {
+  35% {
+    transform: translateY(-14%) rotate(-10deg) scale(1.1);
+  }
+  70% {
+    transform: translateY(0) rotate(6deg);
+  }
+}
+@keyframes rise {
+  from {
+    transform: translateY(0) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.55;
+  }
+  to {
+    transform: translateY(-34rem) scale(1.1);
+    opacity: 0;
+  }
+}
+@keyframes flick {
+  50% {
+    transform: rotate(-22deg);
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes deal {
+  from {
+    transform: translate(3rem, -3rem) rotate(12deg);
+    opacity: 0;
+  }
+}
+@keyframes flip {
+  0% {
+    transform: rotateY(90deg) scale(1.08);
+  }
+  100% {
+    transform: rotateY(0);
+  }
+}
+@keyframes shakecup {
+  20%,
+  60% {
+    transform: rotate(-9deg) translateY(-0.3rem);
+  }
+  40%,
+  80% {
+    transform: rotate(8deg) translateY(-0.1rem);
+  }
+}
+@keyframes sulk {
+  40%,
+  75% {
+    transform: translateY(0.5rem) scale(1.05, 0.9);
+  }
+}
+@keyframes tumble {
+  0% {
+    transform: translate(-5rem, -3rem) rotate(-200deg) scale(0.7);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  65% {
+    transform: translate(0.4rem, 0) rotate(14deg);
+  }
+  82% {
+    transform: translate(0, -0.6rem) rotate(-5deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes open {
+  0% {
+    transform: scale(0.5) rotate(-12deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes implode {
+  35% {
+    transform: scale(1.12, 0.55) rotate(-4deg);
+  }
+  70% {
+    transform: scale(0.5, 0.28) rotate(6deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+@keyframes surface {
+  30% {
+    transform: rotate(-22deg);
+  }
+  100% {
+    transform: translateY(-9rem) rotate(-22deg);
+    opacity: 0;
+  }
+}
+@keyframes unfurl {
+  from {
+    transform: scaleY(0.2);
+    opacity: 0;
+  }
+}
+@keyframes bucket {
+  35% {
+    transform: translateY(0.45rem) scale(1.12);
+  }
+}
+@keyframes tail {
+  50% {
+    transform: rotate(-14deg);
+  }
+}
+@keyframes blink {
+  0%,
+  93%,
+  100% {
+    transform: scaleY(1);
+  }
+  96.5% {
+    transform: scaleY(0.08);
+  }
+}
+@keyframes ear {
+  0%,
+  80%,
+  88%,
+  100% {
+    transform: rotate(0deg);
+  }
+  84% {
+    transform: rotate(14deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* --- Téléphone ---------------------------------------------------------------- */
+
+@media (max-width: 56rem) {
+  #app {
+    display: block;
+  }
+  .side {
+    position: static;
+    height: auto;
+    padding: 0.9rem 1rem;
+  }
+  .mascot {
+    display: none;
+  }
+  /* Sur téléphone, la navigation se replie derrière un bouton. */
+  .side {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .burger {
+    display: grid;
+  }
+  #nav {
+    display: none;
+    flex-basis: 100%;
+    margin-top: 0.75rem;
+    padding-bottom: 0.25rem;
+  }
+  #nav.open {
+    display: flex;
+  }
+  .account {
+    margin-left: 0;
+  }
+  .record,
+  .game {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .game-bar {
+    flex-wrap: wrap;
+  }
+  .game .stage {
+    order: -1;
+    min-height: 0;
+  }
+  .boat span {
+    font-size: 0.8125rem;
+  }
+  /* Sur un écran étroit la lune monte derrière le titre : le texte lui laisse la place. */
+  [data-game='beard'] .slot-head {
+    padding-right: 40%;
+  }
+  .hero {
+    width: 5.5rem;
+    margin-bottom: -0.7rem;
+  }
+  .deck {
+    gap: 0.25rem;
+  }
+  .deck .cannon {
+    width: 4.5rem;
+    margin: 0 0 -0.3rem -0.8rem;
+  }
+  .trail b {
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding: 0 0.35rem;
+    font-size: 0.8125rem;
+  }
+  .trail b:nth-child(n + 4) {
+    display: none;
+  }
+  .rb {
+    min-height: 2.4rem;
+    font-size: 0.75rem;
+  }
+  .lb th:nth-child(3),
+  .lb td:nth-child(3),
+  .lb th:nth-child(4),
+  .lb td:nth-child(4) {
+    display: none;
+  }
+}
+
+/* --- Jeux de table : décors et personnages --------------------------------------- */
+/* Chaque table a son décor illustré et son personnage : la cabine et sa pieuvre
+   croupière, le pont et sa roue en barre de navire, le quai et son crabe, le fond marin
+   et ses coquillages. */
+
+.scenery {
+  position: absolute;
+  inset: 0;
+  background: center bottom / cover no-repeat;
+}
+:is([data-game='blackjack'], [data-game='bjtable'], [data-game='roulette'], [data-game='dice'], [data-game='mines'], [data-game='crash'], [data-game='plinko'], [data-game='holdem']) .stage::before {
+  display: none;
+}
+.pic {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+}
+/* Les machines ont leur personnage pour icône. */
+.ic.pic {
+  object-fit: contain;
+}
+#nav .ic.pic {
+  width: 1.9rem;
+  height: 1.9rem;
+  margin: -0.3rem -0.25rem;
+}
+.tile-game .ic.pic {
+  padding: 0.5rem;
+}
+.tag .ic.pic,
+.prose .ic.pic {
+  background: var(--sea-deep);
+}
+
+/* Tours automatiques. */
+.auto {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.auto select {
+  flex: none;
+  width: 4.75rem;
+}
+.auto .btn {
+  flex: 1;
+  min-width: 0;
+  padding-inline: 0.5rem;
+}
+.auto .btn.armed {
+  border-color: var(--link);
+  background: color-mix(in srgb, var(--link) 12%, transparent);
+}
+
+/* Blackjack : la table de la cabine. */
+.bj-stage {
+  min-height: 34rem;
+}
+.bj-stage .scenery {
+  background-position: center top;
+}
+.bj-stage .bj-row h4,
+.bj-stage .winline {
+  text-shadow: 0 1px 0 rgb(5 18 71 / 0.6);
+}
+.croupier {
+  width: 8rem;
+  margin: -0.5rem auto -1rem;
+  transform-origin: 50% 100%;
+  animation: bob 3.4s ease-in-out infinite;
+}
+.croupier.deal {
+  animation: order 0.4s;
+}
+.bj-hand {
+  background: rgb(4 13 60 / 0.55);
+}
+
+/* Roulette : la roue est une barre de navire, le numéro sorti s'affiche en son centre. */
+.rwheel {
+  position: relative;
+  width: min(17rem, 60%);
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+.rwheel-img {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+.rwheel .ball {
+  position: absolute;
+  inset: 34%;
+  width: auto;
+  height: auto;
+  background: #081547;
+  font-size: clamp(1.4rem, 3.2vw, 2rem);
+}
+.rwheel .ball.rolling {
+  border-style: solid;
+}
+/* La bille court sur le bord, à contresens de la roue. */
+.orbit {
+  position: absolute;
+  inset: 11%;
+  pointer-events: none;
+}
+.orbit i {
+  position: absolute;
+  left: 50%;
+  top: -0.2rem;
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-left: -0.45rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 2px #081547;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.orbit.on i {
+  opacity: 1;
+}
+.roulette-stage .board {
+  padding: 0.5rem;
+  border-radius: 12px;
+  background: rgb(4 13 60 / 0.6);
+}
+
+/* Dés : le crabe secoue son cornet sur le quai. */
+.dice-table {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 9rem;
+}
+.crab {
+  width: 9rem;
+  transform-origin: 50% 100%;
+  animation: bob 3s ease-in-out infinite;
+}
+.crab.shake-cup {
+  animation: shakecup 0.5s;
+}
+.crab.cheer {
+  animation: cheer 0.8s;
+}
+.crab.sulk {
+  animation: sulk 0.7s;
+}
+.dicepic {
+  width: 6rem;
+  margin-bottom: 0.5rem;
+}
+.dicepic.tumble {
+  animation: tumble 0.55s cubic-bezier(0.3, 0.6, 0.4, 1);
+}
+.dice-stage .dice-track {
+  background: rgb(4 13 60 / 0.72);
+}
+.dice-stage .readout {
+  background: rgb(4 13 60 / 0.6);
+}
+
+/* Mines : des coquillages au fond de l'eau. Une perle, ou une mine. */
+.mines-stage .tile {
+  background: rgb(4 13 60 / 0.5);
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.12);
+}
+.mines-stage .tile:not(:disabled):hover {
+  background: rgb(255 255 255 / 0.22);
+}
+.mines-stage .tile:not(:disabled):hover .pic {
+  transform: translateY(-6%) rotate(-4deg);
+}
+.tile .pic {
+  width: 78%;
+  transition: transform 0.15s;
+}
+.tile.gem,
+.tile.bomb,
+.tile.dim {
+  animation: none;
+}
+/* Un coquillage ouvert sur une perle se distingue d'un coquillage fermé sans le regarder de près. */
+.mines-stage .tile.gem {
+  background: rgb(138 242 191 / 0.18);
+  box-shadow: inset 0 0 0 2px var(--mint);
+}
+.tile.fresh .pic {
+  animation: open 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+.tile.dim .pic {
+  opacity: 0.4;
+}
+.mines-stage .winline {
+  text-shadow: 0 1px 0 rgb(5 18 71 / 0.6);
+}
+
+/* Blackjack à plusieurs : cinq places côte à côte devant le croupier. */
+.tb-seats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+  align-items: end;
+}
+.tb-seat {
+  min-height: 9.5rem;
+  padding: 0.5rem 0.4rem;
+  border-radius: 10px;
+  background: rgb(4 13 60 / 0.55);
+  text-align: center;
+  box-shadow: inset 0 0 0 2px transparent;
+}
+.tb-seat.free {
+  display: grid;
+  place-items: center;
+  border: 2px dashed rgb(255 255 255 / 0.3);
+  background: rgb(4 13 60 / 0.25);
+  opacity: 0.8;
+}
+.tb-seat.you {
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.55);
+}
+.tb-seat.active {
+  box-shadow: inset 0 0 0 3px var(--mint);
+}
+.tb-seat .cards {
+  justify-content: center;
+  min-height: 5rem;
+}
+.tb-seat .cards .pcard {
+  width: 3.3rem;
+  height: 4.8rem;
+  margin-left: -1.7rem;
+  padding: 0.3rem 0.35rem;
+  font-size: 1.05rem;
+  text-align: left;
+}
+.tb-seat .cards .pcard:first-child {
+  margin-left: 0;
+}
+.tb-seat .cards .pcard span {
+  font-size: 1.3rem;
+}
+.tb-name {
+  margin-top: 0.35rem;
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tb-seat .bj-total {
+  font-size: 0.875rem;
+}
+.tb-seat.win .bj-total,
+.tb-seat.blackjack .bj-total {
+  color: var(--mint);
+}
+.tb-seat.lose {
+  opacity: 0.7;
+}
+
+/* Crash : le sous-marin descend le long de sa route ; plus bas, la coque cède. */
+.crash-view {
+  position: relative;
+  height: clamp(18rem, 52vh, 30rem);
+  border-radius: 12px;
+  background: rgb(3 10 46 / 0.3);
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.14);
+  overflow: hidden;
+}
+.crash-graph {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.crash-sub {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 6.5rem;
+  pointer-events: none;
+  will-change: transform;
+}
+.crash-sub .pic {
+  animation: bob 2.6s ease-in-out infinite;
+}
+/* L'implosion : la coque se plie, s'écrase sur elle-même et disparaît. */
+.sunk .crash-sub .pic {
+  animation: implode 0.3s cubic-bezier(0.6, 0, 0.9, 0.4) forwards;
+}
+.safe .crash-sub .pic {
+  animation: surface 1.1s ease-out forwards;
+}
+.crash-read {
+  position: absolute;
+  right: 5%;
+  top: 8%;
+  text-align: right;
+  text-shadow: 0 0.06em 0 rgb(3 10 46 / 0.7);
+  pointer-events: none;
+}
+.crash-read b {
+  display: block;
+  font: 900 clamp(2.75rem, 8vw, 5.5rem) / 1 var(--display);
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.crash-read span {
+  font: 700 1.0625rem/1.4 var(--display);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.9;
+}
+.sunk .crash-read b {
+  opacity: 0.55;
+  text-decoration: line-through;
+  text-decoration-thickness: 0.08em;
+}
+.safe .crash-read b {
+  color: var(--mint);
+}
+.crash-stage .scenery {
+  background-position: center top;
+}
+.crash-stage .winline {
+  text-shadow: 0 1px 0 rgb(3 10 46 / 0.7);
+}
+
+/* Plinko : le plateau de plots, et sous lui les cases où la perle finit. */
+.plinko-board {
+  width: 100%;
+  max-width: min(42rem, calc((100vh - 24rem) * 1.12));
+  margin: 0 auto;
+  padding: 0.5rem 0.5rem 0.6rem;
+  border-radius: 12px;
+  background: rgb(4 13 60 / 0.55);
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.14);
+}
+.plinko-pegs {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 0.82;
+}
+.plinko-buckets {
+  display: grid;
+  grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+  gap: 2px;
+  padding-inline: calc(var(--pad) / 2);
+}
+.plinko-buckets b {
+  display: grid;
+  place-items: center;
+  height: 2rem;
+  border-radius: 6px;
+  font: 800 clamp(0.5rem, 1.15vw, 0.8125rem) / 1 var(--display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+/* Sous la mise, à la mise, au-dessus, et les grosses : quatre teintes, du plus sombre à la menthe. */
+.plinko-buckets .pays-under {
+  background: #081547;
+  color: #a9c4f5;
+}
+.plinko-buckets .pays-even {
+  background: #1a3fb8;
+}
+.plinko-buckets .pays-over {
+  background: #fff;
+  color: #081547;
+}
+.plinko-buckets .pays-top {
+  background: var(--mint);
+  color: #081547;
+}
+.plinko-buckets b.hit {
+  animation: bucket 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+.plinko-stage .winline,
+.plinko-stage .history {
+  text-shadow: 0 1px 0 rgb(5 18 71 / 0.6);
+}
+
+/* Texas hold'em : six places autour de la table, le joueur toujours en bas. */
+.pk-stage {
+  justify-content: flex-start;
+}
+.pk-stage .scenery {
+  background-position: center;
+}
+.pk-table {
+  position: relative;
+  width: 100%;
+  max-width: min(60rem, calc((100vh - 18rem) * 1.5));
+  margin: 0 auto;
+  aspect-ratio: 3 / 2;
+}
+.pk-middle {
+  position: absolute;
+  left: 50%;
+  top: 47%;
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  transform: translate(-50%, -50%);
+}
+.pk-middle .cards {
+  min-height: 0;
+  gap: 0.25rem;
+}
+.pk-middle .cards .pcard,
+.pk-seat .cards .pcard {
+  width: clamp(2rem, 4.4vw, 3.3rem);
+  height: clamp(2.9rem, 6.4vw, 4.8rem);
+  margin-left: 0;
+  padding: 0.25rem 0.3rem;
+  font-size: clamp(0.75rem, 1.6vw, 1.05rem);
+  box-shadow: 0 2px 0 rgb(3 10 46 / 0.4);
+}
+.pk-middle .cards .pcard span,
+.pk-seat .cards .pcard span {
+  margin-top: 0;
+  font-size: clamp(0.9rem, 1.9vw, 1.3rem);
+}
+.pk-pot {
+  min-height: 1.6rem;
+  padding: 0.1rem 0.8rem;
+  border-radius: 999px;
+  background: rgb(4 13 60 / 0.7);
+  font: 800 1rem/1.5 var(--display);
+  font-variant-numeric: tabular-nums;
+}
+.pk-pot:empty {
+  visibility: hidden;
+}
+.pk-seat {
+  position: absolute;
+  display: grid;
+  justify-items: center;
+  width: 9.5rem;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.3s;
+}
+.pk-seat.bottom { left: 50%; top: 86%; }
+.pk-seat.bottom-left { left: 13%; top: 64%; }
+.pk-seat.top-left { left: 21%; top: 17%; }
+.pk-seat.top { left: 50%; top: 9%; }
+.pk-seat.top-right { left: 79%; top: 17%; }
+.pk-seat.bottom-right { left: 87%; top: 64%; }
+.pk-seat .cards {
+  min-height: 0;
+  height: clamp(1.9rem, 4.2vw, 3.1rem);
+  gap: 0.15rem;
+  margin-bottom: -0.5rem;
+}
+.pk-seat:not(.you) .cards .pcard {
+  transform: scale(0.82);
+  transform-origin: 50% 100%;
+}
+.pk-who {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.25rem 0.6rem 0.25rem 0.25rem;
+  border-radius: 999px;
+  background: #081547;
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.25);
+}
+.pk-face {
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: #1443d6;
+  object-fit: contain;
+}
+.pk-who div {
+  display: grid;
+  min-width: 0;
+  line-height: 1.2;
+}
+.pk-who b {
+  overflow: hidden;
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pk-who span {
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+.pk-seat.active .pk-who {
+  box-shadow: inset 0 0 0 3px var(--mint);
+}
+.pk-seat.you .pk-who {
+  background: #10319e;
+}
+.pk-seat.out {
+  opacity: 0.5;
+}
+.pk-seat.won .pk-who {
+  box-shadow: inset 0 0 0 3px var(--mint);
+  animation: bump 0.4s;
+}
+.pk-button {
+  position: absolute;
+  right: -0.5rem;
+  top: -0.5rem;
+  display: grid;
+  place-items: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: #fff;
+  color: #081547;
+  font: 800 0.75rem/1 var(--display);
+  font-style: normal;
+}
+.pk-note,
+.pk-bet {
+  margin-top: 0.2rem;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  font: 500 0.75rem/1.5 var(--body);
+  font-style: normal;
+  white-space: nowrap;
+}
+.pk-note {
+  background: rgb(4 13 60 / 0.7);
+}
+.pk-seat.won .pk-note {
+  background: var(--mint);
+  color: #081547;
+  font-weight: 700;
+}
+.pk-bet {
+  background: #fff;
+  color: #081547;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.pk-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.4rem;
+  margin-bottom: 0.9rem;
+}
+.pk-actions .btn {
+  padding-inline: 0.3rem;
+  font-size: 0.875rem;
+}
+.pk-play .btn.primary,
+.pk-play #pk-leave,
+.pk-join .btn {
+  width: 100%;
+  margin-top: 0.6rem;
+}
+#pk-slider {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+.pk-presets {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+}
+.pk-presets button {
+  flex: 1;
+  height: 2rem;
+  border: 1px solid var(--field-line);
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: 500 0.8125rem/1 var(--body);
+}
+.pk-presets button:disabled {
+  opacity: 0.5;
+}
+
+/* --- Accueil -------------------------------------------------------------------- */
+/* Une affiche en tête, trois phrases sur la règle du lieu, puis les jeux par famille et
+   la tête de la course. */
+
+.welcome {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-end;
+  min-height: clamp(20rem, 52vh, 30rem);
+  padding: clamp(1.25rem, 4vw, 3rem);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #0a2480 url('/art/home/hero.webp') 70% 30% / cover no-repeat;
+  color: #fff;
+}
+.welcome::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, rgb(5 18 71 / 0.92), rgb(5 18 71 / 0.7) 38%, transparent 68%);
+}
+.welcome-text {
+  max-width: 34rem;
+}
+.welcome h1 {
+  font: 900 clamp(2rem, 5.2vw, 3.75rem) / 1.02 var(--display);
+  letter-spacing: -0.04em;
+}
+.welcome p {
+  margin-top: 0.9rem;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  opacity: 0.94;
+}
+.welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.4rem;
+}
+.welcome-primary,
+.welcome-quiet {
+  text-decoration: none;
+}
+.welcome-primary {
+  border-color: #fff;
+  background: #fff;
+  color: #0b2a94;
+  font-weight: 700;
+}
+.welcome-quiet {
+  border-color: rgb(255 255 255 / 0.7);
+  background: rgb(5 18 71 / 0.35);
+  color: #fff;
+}
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1rem, 3vw, 2.5rem);
+  margin: 2.25rem 0 0.5rem;
+}
+.steps div {
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+.steps b {
+  font: 900 1.5rem/1 var(--display);
+  color: var(--link);
+}
+.steps h3 {
+  margin-top: 0.4rem;
+  font: 800 1.0625rem/1.25 var(--display);
+  letter-spacing: -0.02em;
+}
+.steps p {
+  margin-top: 0.3rem;
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+}
+.shelf {
+  margin-top: 2.5rem;
+}
+.shelf h2,
+.lead h2 {
+  font: 900 1.5rem/1.2 var(--display);
+  letter-spacing: -0.03em;
+}
+.shelf > p,
+.lead p {
+  margin-top: 0.2rem;
+  color: var(--ink-soft);
+}
+.posters {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.poster {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-end;
+  aspect-ratio: 3 / 2;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--sea-deep);
+  color: #fff;
+  text-decoration: none;
+}
+.poster img {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+.poster:hover img,
+.poster:focus-visible img {
+  transform: scale(1.05);
+}
+.poster span {
+  display: grid;
+  width: 100%;
+  padding: 2.5rem 1rem 0.9rem;
+  background: linear-gradient(transparent, rgb(5 18 71 / 0.92) 62%);
+}
+.poster b {
+  font: 800 1.1875rem/1.2 var(--display);
+  letter-spacing: -0.02em;
+}
+.poster small {
+  margin-top: 0.15rem;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+.lead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  align-items: start;
+  margin-top: 3rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--line);
+}
+.lead a {
+  display: inline-block;
+  margin-top: 0.75rem;
+}
+.lead ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+.lead li {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: baseline;
+  padding: 0.7rem 0.4rem;
+  border-bottom: 1px solid var(--line);
+}
+.lead li span {
+  font: 800 1.0625rem/1 var(--display);
+}
+.lead li i {
+  font-style: normal;
+  font-weight: 700;
+}
+.lead li.me {
+  background: color-mix(in srgb, var(--link) 8%, transparent);
+}
+.lead li.empty {
+  display: block;
+  color: var(--ink-soft);
+}
+
+/* --- Table de jeu : réglages, scène, classement du jeu --------------------------- */
+
+#view:has(.table) {
+  max-width: 118rem;
+}
+.game-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.game-bar .notice {
+  margin: 0;
+}
+.game-bar .btn {
+  flex: none;
+}
+.table {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 17rem;
+  gap: 1.25rem;
+  align-items: start;
+}
+/* La scène prend la place : elle grandit avec la fenêtre tant que la grille tient à l'écran. */
+.slot-stage .frame {
+  max-width: min(100%, 72rem, max(26rem, calc((100vh - 31rem) * 1.6667)));
+}
+.sideboard {
+  position: sticky;
+  top: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.sideboard h2 {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.sideboard p {
+  margin-top: 0.35rem;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+.sideboard ol {
+  margin: 0.9rem 0 0.75rem;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+.sideboard li {
+  display: grid;
+  grid-template-columns: 1.6rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.55rem 0.4rem;
+  border-top: 1px solid var(--line);
+}
+.sideboard li.me {
+  background: color-mix(in srgb, var(--link) 8%, transparent);
+}
+.sideboard li span {
+  font: 800 0.9375rem/1 var(--display);
+}
+.sideboard li b {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sideboard li i {
+  font-style: normal;
+  font-weight: 700;
+  text-align: right;
+}
+.sideboard li small {
+  display: block;
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+.sideboard a {
+  display: inline-block;
+  margin-top: 0.75rem;
+  font-size: 0.9375rem;
+}
+
+/* Plein écran : il ne reste que le solde, les réglages et la scène. */
+.immersive .side,
+.immersive .foot,
+.immersive .sideboard,
+.immersive .rules,
+.immersive .game-bar .notice,
+.immersive .account,
+.immersive .mode {
+  display: none;
+}
+.immersive #app {
+  display: block;
+}
+.immersive .top {
+  padding-block: 0.5rem;
+}
+.immersive #view {
+  max-width: none;
+  padding: 0.75rem;
+}
+.immersive .game-bar {
+  position: fixed;
+  top: 0.6rem;
+  right: 0.75rem;
+  z-index: 5;
+  margin: 0;
+}
+.immersive .table {
+  grid-template-columns: minmax(0, 1fr);
+}
+.immersive .game .stage {
+  min-height: calc(100vh - 5.5rem);
+}
+.immersive .slot-stage .frame {
+  max-width: min(100%, max(20rem, calc((100vh - 22rem) * 1.6667)));
+}
+:is([data-game='beard'], [data-game='bass']) .slot-stage {
+  --frame-w: min(100%, 72rem, max(15rem, calc((100vh - var(--chrome, 41rem)) * 1.6667)));
+}
+.immersive :is([data-game='beard'], [data-game='bass']) .slot-stage {
+  --frame-w: min(100%, max(20rem, calc((100vh - 30rem) * 1.6667)));
+}
+:is([data-game='beard'], [data-game='bass']) .slot-stage .frame,
+:is([data-game='beard'], [data-game='bass']) .slot-stage .under {
+  width: 100%;
+  max-width: var(--frame-w);
+  margin-inline: auto;
+}
+
+@media (max-width: 86rem) {
+  .table {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sideboard {
+    position: static;
+  }
+}
+@media (max-width: 56rem) {
+  .slot-stage .frame {
+    max-width: 100%;
+  }
+  .tb-seats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .steps,
+  .lead {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .welcome::before {
+    background: linear-gradient(rgb(5 18 71 / 0.35), rgb(5 18 71 / 0.92) 70%);
+  }
+  .pk-seat {
+    width: 6.4rem;
+  }
+  .pk-face {
+    width: 1.7rem;
+    height: 1.7rem;
+  }
+  .pk-who b {
+    font-size: 0.75rem;
+  }
+  :is([data-game='beard'], [data-game='bass'], [data-game='neptune'], [data-game='reef'], [data-game='dogs']) .slot-stage {
+    --frame-w: 100%;
+  }
+  .game-bar {
+    align-items: flex-start;
+  }
+}
+
+/* --- Écrans peu hauts ----------------------------------------------------------- */
+/* Sur un ordinateur, une machine tient entière à l'écran sans défiler : quand la hauteur
+   manque, c'est l'habillage qui se resserre (marges, sous-titre, personnage), et la
+   grille prend ce qui reste. */
+
+@media (min-width: 56.01rem) and (max-height: 56rem) {
+  .top {
+    padding-block: 0.5rem;
+  }
+  #view:has(.table) {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+  .game-bar {
+    margin-bottom: 0.5rem;
+  }
+  .game .stage {
+    gap: 0.6rem;
+    padding: 0.9rem 1.1rem;
+  }
+  .slot-head p {
+    display: none;
+  }
+  :is([data-game='beard'], [data-game='bass']) .under {
+    min-height: 5.25rem;
+  }
+  :is([data-game='beard'], [data-game='bass']) .hero {
+    width: 6rem;
+    margin-bottom: -0.8rem;
+  }
+  .deck .cannon {
+    width: 5rem;
+  }
+  .slot-stage .tally {
+    height: 2.6rem;
+  }
+  .panel {
+    padding: 0.9rem;
+  }
+  :is([data-game='beard'], [data-game='bass']) .slot-stage {
+    --chrome: 30.75rem;
+  }
+  /* Les réglages non plus ne dépassent pas : au besoin, ils défilent dans leur panneau. */
+  .game .panel {
+    max-height: calc(100vh - 11.25rem);
+    overflow-y: auto;
+  }
+  [data-game='bounty'] .slot-stage {
+    --chrome: 26rem;
+  }
+  :is([data-game='neptune'], [data-game='reef'], [data-game='dogs']) .slot-stage {
+    --chrome: 26rem;
+  }
+}
+
+/* La bande de navigation porte beaucoup de jeux : sur un écran peu haut elle défile, et
+   le chat laisse la place. */
+@media (min-width: 56.01rem) {
+  #nav {
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(255 255 255 / 0.35) transparent;
+  }
+}
+@media (min-width: 56.01rem) and (max-height: 62rem) {
+  .mascot {
+    display: none;
+  }
+}
