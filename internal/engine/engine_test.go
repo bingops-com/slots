@@ -26,7 +26,7 @@ func TestWalletInvariants(t *testing.T) {
 		"slots/bounty":     {`{"bet":100}`, `{"bet":10,"buy":"GALLEON"}`, `{"bet":10,"buy":"DUEL"}`, `{"bet":10,"buy":"DEAD"}`},
 		"slots/neptune":    {`{"bet":100}`, `{"bet":100,"ante":true}`, `{"bet":10,"buy":"fs"}`},
 		"slots/reef":       {`{"bet":100}`, `{"bet":100,"ante":true}`, `{"bet":10,"buy":"fs"}`},
-		"slots/dogs":       {`{"bet":100}`},
+		"slots/dogs":       {`{"bet":100}`, `{"bet":10,"buy":"fs"}`},
 		"blackjack/start":  {`{"bet":100}`},
 		"blackjack/action": {`{"action":"hit"}`, `{"action":"stand"}`, `{"action":"double"}`, `{"action":"split"}`},
 		"mines/start":      {`{"bet":100,"mines":3}`},
@@ -91,6 +91,7 @@ func TestRejectsBadInput(t *testing.T) {
 		{"slots/bass", `{"bet":99999999}`},
 		{"slots/beard", `{"bet":100,"buy":"everything"}`},
 		{"slots/bass", `{"bet":100,"buy":"fsr"}`},
+		{"slots/dogs", `{"bet":100,"buy":"everything"}`},
 		{"slots/beard", `{"bet":500000,"buy":"fsr"}`},
 		{"roulette", `{"bets":[]}`},
 		{"roulette", `{"bets":[{"type":"straight","value":37,"amount":100}]}`},
@@ -112,6 +113,27 @@ func TestRejectsBadInput(t *testing.T) {
 			t.Errorf("%s %s: accepted", c.action, c.body)
 		} else if *w != *NewWallet() {
 			t.Errorf("%s %s: wallet changed on error", c.action, c.body)
+		}
+	}
+}
+
+func TestDogsBoughtBonus(t *testing.T) {
+	res := DogsPlay(seeded(7), true)
+	if !res.Bought || res.Bonus == nil || res.Scatters != 3 || res.ScatterPay != 0 || len(res.Wins) != 0 {
+		t.Fatalf("invalid bought bonus: %+v", res)
+	}
+	if len(res.Bonus.Barrels) != 9 || res.Awarded != len(res.Bonus.Spins) || res.Awarded < 9 || res.Awarded > 27 {
+		t.Fatalf("invalid free spins: awarded=%d barrels=%v spins=%d", res.Awarded, res.Bonus.Barrels, len(res.Bonus.Spins))
+	}
+	for _, c := range []int{0, 2, 4} {
+		found := 0
+		for _, cell := range res.Grid[c] {
+			if cell.S == "SCAT" {
+				found++
+			}
+		}
+		if found != 1 {
+			t.Fatalf("reel %d has %d scatters", c+1, found)
 		}
 	}
 }

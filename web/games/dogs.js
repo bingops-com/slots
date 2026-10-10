@@ -20,6 +20,7 @@ const SYM = {
   WILD: { text: img('wild'), cls: 'wild' }, SCAT: { text: img('scatter'), cls: 'scatter', tag: 'BONUS' },
 };
 const NAMES = ['T', 'J', 'Q', 'K', 'A', 'BONE', 'COLLAR', 'DOG1', 'DOG2', 'DOG3', 'DOG4'];
+const BUY = 100;
 const times = (m) => `×${m.toLocaleString('fr-FR')}`;
 
 const table = `
@@ -34,12 +35,14 @@ const rules = `
   <p>${img('wild')} <b>Niche wild</b> : sur les rouleaux 2, 3 et 4 seulement. Elle remplace les symboles payants et porte un multiplicateur ×2 ou ×3 ; plusieurs niches sur une même ligne s'additionnent.</p>
   <p>${img('scatter')} <b>Bonus</b> : sur les rouleaux 1, 3 et 5. Les trois ensemble paient 5 fois la mise et ouvrent les tours gratuits : neuf tonneaux donnent chacun 1, 2 ou 3 tours, soit 9 à 27 au total.</p>
   <p>En tours gratuits, chaque niche qui tombe reste en place avec son multiplicateur jusqu'à la fin. Les tours gratuits ne se redéclenchent pas.</p>
+  <p><b>Achat</b> : déclenche directement les tours gratuits pour 100 fois la mise.</p>
   <p>Gain maximal : 6 750 fois la mise. Les règles et la table des gains sont celles de The Dog House ; ses rouleaux n'étant pas publics, le tracé des lignes est le plus courant et les fréquences sont réglées par simulation sur ses chiffres connus (retour de 96,51 %, un gain sur 27,5 % des tours, tours gratuits tous les 180 tours).</p>`;
 const rulesEn = `
   <p>5 reels, 3 rows, 20 lines paid left to right. Wins in multiples of the bet for 3 / 4 / 5 symbols:</p>${table.replace(/(\d),(\d)/g, '$1.$2')}
   <p>${img('wild')} <b>Kennel wild</b>: on reels 2, 3 and 4 only. It substitutes for paying symbols and carries a ×2 or ×3 multiplier; several kennels on the same line add up.</p>
   <p>${img('scatter')} <b>Bonus</b>: on reels 1, 3 and 5. All three together pay 5 times the bet and open the free spins: nine barrels each give 1, 2 or 3 spins, 9 to 27 in total.</p>
   <p>In free spins, every kennel that lands stays in place with its multiplier until the end. Free spins do not retrigger.</p>
+  <p><b>Buy</b>: triggers the free spins directly for 100 times the bet.</p>
   <p>Maximum win: 6,750 times the bet. The rules and the paytable are those of The Dog House; its reels are not public, so the layout of the lines is the usual one and the frequencies are tuned by simulation on its known figures (return of 96.51%, a win on 27.5% of spins, free spins every 180 spins).</p>`;
 
 const game = {
@@ -54,6 +57,16 @@ const game = {
     for (const name of ['bone', 'collar', 'dog1', 'dog2', 'dog3', 'dog4', 'wild', 'scatter']) new Image().src = `/art/dogs/${name}.webp`;
     const fx = createFx(ui.stage);
     Sound.ambience('sea');
+
+    ui.extra.innerHTML = '<p class="buy-title">Acheter les tours gratuits</p><button class="btn quiet buy"></button>';
+    const buyBtn = $('.buy', ui.extra);
+    const labels = () => {
+      buyBtn.classList.remove('armed');
+      buyBtn.innerHTML = `9 à 27 tours gratuits<small>${App.coin(ui.bet.value * BUY)}</small>`;
+    };
+    labels();
+    ui.controls.addEventListener('change', labels);
+    ui.controls.addEventListener('click', labels);
 
     const render = (c) => {
       const d = SYM[c.s];
@@ -173,23 +186,25 @@ const game = {
       await stageBanner(ui.stage, `${App.coin(Math.round(res.bonus.total * bet))}<small>gagnés en ${res.bonus.spins.length} tours gratuits</small>`, 2200);
     }
 
-    async function spin() {
+    async function spin(buy = false) {
       if (busy) return false;
       bet = ui.bet.value;
-      if (bet > App.user.balance) {
-        App.toast('Il ne reste pas assez de crédits pour cette mise');
+      const cost = buy ? bet * BUY : bet;
+      if (cost > App.user.balance) {
+        App.toast(buy ? 'Il ne reste pas assez de crédits pour cet achat' : 'Il ne reste pas assez de crédits pour cette mise');
         return false;
       }
       let played = false;
       busy = true;
       ui.play.disabled = true;
+      buyBtn.disabled = true;
       ui.bet.lock(true);
       ui.winline.innerHTML = '&nbsp;';
       ui.tally.reset();
       sfx('lever');
       try {
-        const pending = App.api('/api/slots/dogs', { bet });
-        App.showBalance(App.user.balance - bet);
+        const pending = App.api('/api/slots/dogs', buy ? { bet, buy: 'fs' } : { bet });
+        App.showBalance(App.user.balance - cost);
         const res = await pending;
         await playSpin(res, false);
         if (res.scatterPay) {
@@ -219,10 +234,22 @@ const game = {
       }
       busy = false;
       ui.play.disabled = false;
+      buyBtn.disabled = false;
       ui.bet.lock(false);
+      labels();
       return played && !gone;
     }
 
+    // Un achat coûte cher : le premier clic arme le bouton, le second confirme.
+    buyBtn.onclick = () => {
+      if (!buyBtn.classList.contains('armed')) {
+        buyBtn.classList.add('armed');
+        buyBtn.innerHTML = `Confirmer l'achat<small>${App.coin(ui.bet.value * BUY)}</small>`;
+        sfx('arm');
+        return;
+      }
+      spin(true);
+    };
     ui.play.onclick = () => spin();
     ui.auto.bind(() => spin());
     const unbind = App.onSpace(() => spin());

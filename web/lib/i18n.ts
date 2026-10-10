@@ -82,7 +82,7 @@ const DICT: Record<string, string> = {
   'Plongez, remontez avant que la coque ne cède': 'Dive, surface before the hull gives way',
   // ----- Big Catch -----
   'Dix lignes, des poissons à ramasser en tours gratuits, jusqu\'à 2 100 fois la mise.': 'Ten lines, fish to collect in free spins, up to 2,100 times the bet.',
-  '10 tours gratuits': '10 free spins', 'La pêche compte': 'The catch counts', 'Dynamite : des poissons apparaissent': 'Dynamite: fish appear',
+  '10 tours gratuits': '10 free spins', '9 à 27 tours gratuits': '9 to 27 free spins', 'La pêche compte': 'The catch counts', 'Dynamite : des poissons apparaissent': 'Dynamite: fish appear',
   'Le pêcheur ramasse': 'The fisherman collects', 'On plonge : chaque pêcheur ramasse les poissons': 'Down we go: every fisherman collects the fish', '10 tours de plus': '10 more spins',
   // ----- Barbe-Rouge -----
   "Des cascades qui doublent le multiplicateur à chaque gain, jusqu'à 20 000 fois la mise.": 'Cascades that double the multiplier with every win, up to 20,000 times the bet.',

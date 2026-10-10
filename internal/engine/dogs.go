@@ -11,9 +11,10 @@ package engine
 // free spins every 180 spins, maximum win 6,750 times the bet).
 
 const (
-	dogsCols   = 5
-	dogsRows   = 3
-	DogsMaxWin = 6750
+	dogsCols    = 5
+	dogsRows    = 3
+	DogsMaxWin  = 6750
+	DogsBuyCost = 100
 
 	dogsScatterPay = 5
 )
@@ -38,9 +39,10 @@ var (
 		{"T", 15}, {"J", 15}, {"Q", 15}, {"K", 13}, {"A", 13},
 		{"BONE", 10}, {"COLLAR", 9}, {"DOG1", 7.5}, {"DOG2", 6.5}, {"DOG3", 5.5}, {"DOG4", 4.5},
 	}
-	dogsWild     = 6.8 // middle reels, base game
-	dogsFreeWild = 3.0 // middle reels, free spins: every wild stays
-	dogsScatter  = 7.8 // reels 1, 3 and 5; at most one per reel
+	dogsWild     = 6.8  // middle reels, base game
+	dogsFreeWild = 3.0  // middle reels, free spins: every wild stays
+	dogsBuyWild  = 3.25 // bought bonus: slightly richer to return about 96 % of its 100x price
+	dogsScatter  = 7.8  // reels 1, 3 and 5; at most one per reel
 	dogsWildMult = []weight[float64]{{2, 65}, {3, 35}}
 	dogsBarrel   = []weight[int]{{1, 50}, {2, 32}, {3, 18}}
 )
@@ -81,9 +83,24 @@ type DogsResult struct {
 	Scatters   int        `json:"scatters"`
 	ScatterPay float64    `json:"scatterPay"`
 	Awarded    int        `json:"awarded,omitempty"`
+	Bought     bool       `json:"bought,omitempty"`
 	Bonus      *DogsBonus `json:"bonus"`
 	TotalMult  float64    `json:"totalMult"`
 	Round
+}
+
+// dogsBought draws the result shown before a bought bonus: one scatter on
+// each eligible reel and no line win. Only the free spins are paid.
+func dogsBought(rng Source) DogsGrid {
+	for {
+		grid := dogsDraw(rng, dogsWild, false)
+		for _, c := range []int{0, 2, 4} {
+			grid[c][intn(rng, dogsRows)] = DogsCell{S: "SCAT"}
+		}
+		if wins, _ := dogsEval(grid); len(wins) == 0 {
+			return grid
+		}
+	}
 }
 
 func dogsDraw(rng Source, wild float64, scatters bool) DogsGrid {
@@ -152,7 +169,7 @@ func dogsEval(grid DogsGrid) ([]DogsWin, float64) {
 	return wins, total
 }
 
-func dogsFreeSpins(rng Source, budget float64) *DogsBonus {
+func dogsFreeSpins(rng Source, budget, wild float64) *DogsBonus {
 	b := &DogsBonus{Barrels: make([]int, 9), Spins: []DogsSpin{}}
 	count := 0
 	for i := range b.Barrels {
@@ -165,7 +182,7 @@ func dogsFreeSpins(rng Source, budget float64) *DogsBonus {
 	}
 	var kept []held
 	for left := count - 1; left >= 0 && b.Total < budget; left-- {
-		grid := dogsDraw(rng, dogsFreeWild, false)
+		grid := dogsDraw(rng, wild, false)
 		spin := DogsSpin{Left: left, Held: [][2]int{}}
 		for _, h := range kept {
 			grid[h.c][h.r] = DogsCell{S: "WILD", V: h.v}
@@ -187,9 +204,13 @@ func dogsFreeSpins(rng Source, budget float64) *DogsBonus {
 	return b
 }
 
-// DogsSpinRound plays one full round, free spins included.
-func DogsSpinRound(rng Source) *DogsResult {
+// DogsPlay plays one full round, free spins included. A bought round displays
+// the three triggering scatters and pays only the free-spins feature.
+func DogsPlay(rng Source, buy bool) *DogsResult {
 	grid := dogsDraw(rng, dogsWild, true)
+	if buy {
+		grid = dogsBought(rng)
+	}
 	res := &DogsResult{DogsSpin: DogsSpin{Grid: grid}}
 	res.Wins, res.Win = dogsEval(grid)
 	for _, col := range grid {
@@ -201,10 +222,16 @@ func DogsSpinRound(rng Source) *DogsResult {
 	}
 	total := res.Win
 	if res.Scatters >= 3 {
-		res.ScatterPay = dogsScatterPay
-		total += res.ScatterPay
+		if !buy {
+			res.ScatterPay = dogsScatterPay
+			total += res.ScatterPay
+		}
 		if total < DogsMaxWin {
-			res.Bonus = dogsFreeSpins(rng, DogsMaxWin-total)
+			wild := dogsFreeWild
+			if buy {
+				wild = dogsBuyWild
+			}
+			res.Bonus = dogsFreeSpins(rng, DogsMaxWin-total, wild)
 			res.Bonus.Total = min(res.Bonus.Total, DogsMaxWin-total)
 			res.Awarded = len(res.Bonus.Spins)
 			for _, n := range res.Bonus.Barrels {
@@ -213,6 +240,10 @@ func DogsSpinRound(rng Source) *DogsResult {
 			total += res.Bonus.Total
 		}
 	}
+	res.Bought = buy
 	res.TotalMult = min(total, DogsMaxWin)
 	return res
 }
+
+// DogsSpinRound keeps the simulation and callers of the base game concise.
+func DogsSpinRound(rng Source) *DogsResult { return DogsPlay(rng, false) }

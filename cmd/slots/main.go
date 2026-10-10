@@ -206,6 +206,10 @@ func sim(args []string) {
 			}
 			return r.TotalMult, nil
 		}, engine.DogsMaxWin)
+		run("dogs, achat", n/40+1, engine.DogsBuyCost, func() (float64, *float64) {
+			r := engine.DogsPlay(rng, true)
+			return r.TotalMult, &r.Bonus.Total
+		}, engine.DogsMaxWin)
 	}
 	if only == "" || only == "bounty" {
 		for _, c := range []struct {

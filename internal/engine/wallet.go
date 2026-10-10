@@ -329,12 +329,20 @@ func (e *Engine) Do(w *Wallet, action string, body []byte) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		if err := w.debit(bet); err != nil {
+		if req.Buy != "" && req.Buy != "fs" {
+			return nil, Error("Achat inconnu")
+		}
+		buy := req.Buy == "fs"
+		cost := bet
+		if buy {
+			cost *= DogsBuyCost
+		}
+		if err := w.debit(cost); err != nil {
 			return nil, err
 		}
-		res := DogsSpinRound(e.Rng)
-		res.Round = Round{Bet: bet, Cost: bet, Payout: int64(math.Round(float64(bet) * res.TotalMult))}
-		e.settle(w, "dogs", bet, res.Payout)
+		res := DogsPlay(e.Rng, buy)
+		res.Round = Round{Bet: bet, Cost: cost, Payout: int64(math.Round(float64(bet) * res.TotalMult))}
+		e.settle(w, "dogs", cost, res.Payout)
 		return res, nil
 
 	case "slots/bounty":

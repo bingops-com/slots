@@ -66,7 +66,7 @@ tout le monde et vide les tableaux ; les parties en cours sont abandonnées.
 | Mort ou Vif | Celles de Wanted Dead or a Wild : 5×5, 15 lignes, un duel qui s'étend en rouleau wild avec un multiplicateur de ×2 à ×100 (plusieurs s'additionnent), et trois bonus achetables : wilds qui restent en place, tours chargés de duels, collecte de wilds et d'un multiplicateur puis trois tours pour les jouer. Plafond 12 500 fois la mise. |
 | Neptune | Celles de Gates of Olympus : grille 6×5, gains à partir de huit symboles où qu'ils soient, cascades, orbes multiplicateurs et 15 tours gratuits où leurs valeurs s'accumulent. Mise ante et achat du bonus. Plafond 5 000 fois la mise. |
 | Le Récif | Celles de Sweet Bonanza : grille 6×5, gains à partir de huit symboles où qu'ils soient, cascades et 10 tours gratuits où les bulles multiplient chaque gain. Mise ante et achat du bonus. Plafond 21 100 fois la mise. |
-| Chiens de bord | Celles de The Dog House : 5×3, 20 lignes, wilds multiplicateurs et tours gratuits où les wilds restent en place. Plafond 6 750 fois la mise. |
+| Chiens de bord | Celles de The Dog House : 5×3, 20 lignes, wilds multiplicateurs et tours gratuits où les wilds restent en place. Achat du bonus pour 100 fois la mise. Plafond 6 750 fois la mise. |
 | Blackjack | Sabot infini, croupier qui s'arrête à 17, doubler, séparer une fois, blackjack payé 3 pour 2. |
 | Roulette | Européenne, un seul zéro. |
 | Dés | Le joueur fixe le seuil ; 1 % d'avantage pour la maison. |
@@ -94,7 +94,8 @@ Mesures finales sur 8 à 20 millions de tours (`make sim`) :
 | Le Récif | 97,1 % | 4,8 tours | 452 tours |
 | Le Récif, mise ante | 97,4 % | 4,9 tours | 208 tours |
 | Le Récif, achat des tours gratuits | 96,5 % | | |
-| Chiens de bord | 96,8 % | 3,7 tours | 180 tours |
+| Chiens de bord | 96,3 % | 3,7 tours | 181 tours |
+| Chiens de bord, achat des tours gratuits | 97,4 % | | |
 | Barbe-Rouge, mise dorée | 92 à 96 % | 4,6 tours | 124 tours |
 | Barbe-Rouge, achat de 7 tours | 87 à 96 % | | |
 | Barbe-Rouge, achat à la roue | 92 à 98 % | | |
