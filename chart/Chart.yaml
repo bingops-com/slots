@@ -1,0 +1,6 @@
+apiVersion: v2
+name: slots
+description: Machines à sous et jeux de table fictifs de lab.bingo (https://github.com/bingops-com/slots)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

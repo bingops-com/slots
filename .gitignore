@@ -1,0 +1,14 @@
+# Restored from skills-lock.json; project skills written here are tracked.
+.agents/skills/frontend-design/
+/data/
+/bin/
+/legacy-node.tar.gz
+web/node_modules/
+web/.next/
+web/out/
+web/next-env.d.ts
+web/tsconfig.tsbuildinfo
+# Built from cmd/wasm by "make wasm".
+web/public/engine.wasm
+web/public/wasm_exec.js
+.env

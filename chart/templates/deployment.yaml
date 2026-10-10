@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "slots.fullname" . }}
+  labels:
+    {{- include "slots.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  # Jamais deux instances à la fois : l'ancienne s'arrête (et rend les mises de la
+  # donne en cours) avant que la nouvelle ne démarre.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "slots.labels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "slots.labels" . | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: slots
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: SLOTS_ADDR
+              value: ":3777"
+            - name: SLOTS_TRUST_PROXY
+              value: {{ .Values.trustProxy | quote }}
+            - name: SLOTS_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "slots.databaseSecret" . }}
+                  key: {{ if .Values.database.cnpg.enabled }}uri{{ else }}{{ .Values.database.existingSecret.key }}{{ end }}
+          ports:
+            - name: http
+              containerPort: 3777
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 3
+            failureThreshold: 40
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 20
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
