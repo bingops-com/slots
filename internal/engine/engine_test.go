@@ -457,14 +457,19 @@ func TestTableWaits(t *testing.T) {
 	tb := NewTable()
 	tb.Seen("a", 0)
 	tb.Bet("a", "Alice", 100, 0, -1, 0)
-	tb.Tick(rng, 1)
-	if tb.Phase == "betting" {
-		t.Fatal("a player alone at the table waited for the deal")
+	tb.Bet("a", "Alice", 100, 0, -1, 0)
+	if tb.Tick(rng, 1); tb.Phase != "betting" {
+		t.Fatal("dealt before the player had finished betting")
+	}
+	tb.SetReady("a", 2)
+	if tb.Tick(rng, 3); tb.Phase == "betting" || len(tb.Seats) != 2 {
+		t.Fatal("a player alone and ready waited for the deal")
 	}
 
 	tb = NewTable()
 	tb.Seen("b", 0)
 	tb.Bet("a", "Alice", 100, 0, -1, 0)
+	tb.SetReady("a", 0)
 	for now := int64(0); now < tableBetWindow; now += 500 {
 		tb.Seen("b", now)
 		if tb.Tick(rng, now); tb.Phase != "betting" {
@@ -484,6 +489,7 @@ func TestTableWaits(t *testing.T) {
 	tb = NewTable()
 	tb.Seen("b", 0)
 	tb.Bet("a", "Alice", 100, 0, -1, tablePresence+1)
+	tb.SetReady("a", tablePresence+1)
 	tb.Tick(rng, tablePresence+2)
 	if tb.Phase == "betting" {
 		t.Fatal("the deal waited for a player who had left")

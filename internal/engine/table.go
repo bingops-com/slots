@@ -6,8 +6,10 @@ import (
 )
 
 // A shared blackjack table: several players bet on the same deal and play
-// their hands in turn against one dealer. The table waits for a first bet,
-// deals as soon as everyone watching has bet (or after a short moment), gives
+// their hands in turn against one dealer. A player may bet on several of the
+// five places and plays each of those hands. The table waits for a first bet,
+// deals as soon as everyone watching says they are ready (or after a short
+// moment), gives
 // each player a limited time to act, plays the dealer, shows the result, and
 // starts over. Nothing makes the players wait more than five seconds.
 //
@@ -46,6 +48,8 @@ type Table struct {
 	// Present is when each signed-in player last looked at the table: the deal
 	// does not wait for people who are not there.
 	Present map[string]int64
+	// Ready holds the players who have placed all the bets they wanted.
+	Ready map[string]bool
 }
 
 // TableResult is what the server must settle for one player.
@@ -78,29 +82,44 @@ type TableView struct {
 	Remaining   int64           `json:"remaining"` // ms before the phase moves on by itself
 	Window      int64           `json:"window"`    // ms the phase lasts at most
 	Seated      bool            `json:"seated"`
+	Ready       bool            `json:"ready"`    // the player asked for the deal
+	CanReady    bool            `json:"canReady"` // the player has bets down and may ask for it
 	CanBet      bool            `json:"canBet"`
 	Actions     []string        `json:"actions"`
 }
 
 func NewTable() *Table {
-	return &Table{Phase: "waiting", Seats: []*TableSeat{}, Present: map[string]int64{}}
+	return &Table{Phase: "waiting", Seats: []*TableSeat{}, Present: map[string]int64{}, Ready: map[string]bool{}}
 }
 
 // Seen records that a player is looking at the table.
 func (t *Table) Seen(userID string, now int64) { t.Present[userID] = now }
 
-// everyoneIn says whether all the players at the table have placed their bet.
+// everyoneIn says whether all the players at the table have placed their bets
+// and asked for the deal.
 func (t *Table) everyoneIn(now int64) bool {
 	for id, at := range t.Present {
 		if now-at > tablePresence {
 			delete(t.Present, id)
 			continue
 		}
-		if t.seat(id) == nil {
+		if !t.Ready[id] {
 			return false
 		}
 	}
 	return true
+}
+
+// CanReady says whether the player may ask for the deal: the bets are open and
+// one of them is theirs.
+func (t *Table) CanReady(userID string) bool {
+	return t.Phase == "betting" && t.seat(userID) != nil && !t.Ready[userID]
+}
+
+// SetReady records that the player has no more bets to place.
+func (t *Table) SetReady(userID string, now int64) {
+	t.Ready[userID] = true
+	t.Seen(userID, now)
 }
 
 // Stamp changes whenever something happens at the table.
@@ -151,8 +170,8 @@ func (t *Table) CanBet(userID string, amount int64, pos int) error {
 	if t.Phase != "waiting" && t.Phase != "betting" {
 		return Error("La donne est en cours, attendez la suivante")
 	}
-	if t.seat(userID) != nil {
-		return Error("Votre mise est déjà posée")
+	if t.Ready[userID] {
+		return Error("Vos mises sont posées, la donne arrive")
 	}
 	if len(t.Seats) >= TableSeats {
 		return Error("La table est complète")
@@ -329,6 +348,7 @@ func (t *Table) Tick(rng Source, now int64) []TableResult {
 		t.Phase = "waiting"
 		t.Dealer = nil
 		t.Seats = []*TableSeat{}
+		t.Ready = map[string]bool{}
 		t.Round++
 	}
 	return nil
@@ -360,7 +380,8 @@ func (t *Table) View(userID string, now int64) TableView {
 		v.Remaining = max(0, t.Deadline-now)
 		v.Window = map[string]int64{"betting": tableBetWindow, "playing": tableTurnTime, "done": tableShowTime}[t.Phase]
 	}
-	v.CanBet = userID != "" && !v.Seated && v.Free > 0 && (t.Phase == "waiting" || t.Phase == "betting")
+	v.Ready, v.CanReady = t.Ready[userID], t.CanReady(userID)
+	v.CanBet = userID != "" && !v.Ready && v.Free > 0 && (t.Phase == "waiting" || t.Phase == "betting")
 	for i, s := range t.Seats {
 		sv := TableSeatView{Pos: s.Pos, Name: s.Name, Cards: s.Cards, Total: bjTotal(s.Cards), Bet: s.Bet, Result: s.Result, You: s.UserID == userID, Turn: t.Phase == "playing" && i == t.Turn}
 		if done {

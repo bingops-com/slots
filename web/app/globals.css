@@ -3726,64 +3726,93 @@ select:focus-visible {
   text-shadow: 0 1px 0 rgb(5 18 71 / 0.6);
 }
 
-/* Blackjack à plusieurs : cinq places côte à côte devant le croupier. */
+/* Blackjack à plusieurs : cinq places en arc devant le croupier. Chaque place est un rond
+   où l'on pose sa mise ; les cartes de la main viennent au-dessus. Un joueur peut tenir
+   plusieurs places. */
 .tb-seats {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.5rem;
+  gap: 0.25rem;
   align-items: end;
 }
 .tb-seat {
-  min-height: 9.5rem;
-  padding: 0.5rem 0.4rem;
-  border-radius: 10px;
-  background: rgb(4 13 60 / 0.55);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  min-height: 11.25rem;
   text-align: center;
-  box-shadow: inset 0 0 0 2px transparent;
+  transition: opacity 0.3s;
 }
-.tb-seat.free {
-  display: grid;
-  place-items: center;
-  border: 2px dashed rgb(255 255 255 / 0.3);
-  background: rgb(4 13 60 / 0.25);
-  opacity: 0.8;
+.tb-seat:nth-child(1),
+.tb-seat:nth-child(5) {
+  margin-bottom: 1.5rem;
 }
-/* Une place libre se prend en la touchant tant que les mises sont ouvertes. */
-button.tb-seat.free {
-  width: 100%;
-  color: inherit;
-  font: inherit;
-  opacity: 1;
-  cursor: pointer;
-  transition: background-color 0.15s, border-color 0.15s;
-}
-button.tb-seat.free:hover,
-button.tb-seat.free:focus-visible {
-  border-color: #fff;
-  background: rgb(4 13 60 / 0.55);
-}
-button.tb-seat.free:focus-visible {
-  outline: 3px solid #fff;
-  outline-offset: 2px;
+.tb-seat:nth-child(2),
+.tb-seat:nth-child(4) {
+  margin-bottom: 0.5rem;
 }
 .tb-seat.you {
   color: inherit;
   font-size: inherit;
 }
-.tb-seat.you {
-  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.55);
+.tb-spot {
+  display: grid;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  flex: none;
+  padding: 0;
+  border: 2px dashed rgb(255 255 255 / 0.4);
+  border-radius: 50%;
+  background: rgb(4 13 60 / 0.4);
+  color: #fff;
+  font: 800 0.8125rem/1 var(--display);
+  font-variant-numeric: tabular-nums;
 }
-.tb-seat.active {
-  box-shadow: inset 0 0 0 3px var(--mint);
+/* Une place libre se prend en la touchant tant que les mises sont ouvertes. */
+button.tb-spot {
+  border-color: rgb(255 255 255 / 0.75);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.15s;
+}
+button.tb-spot:hover,
+button.tb-spot:focus-visible {
+  border-color: #fff;
+  background: rgb(255 255 255 / 0.18);
+  transform: scale(1.08);
+}
+button.tb-spot:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+/* Une mise posée : un jeton, blanc pour vos mains, bleu pâle pour celles des autres. */
+.tb-seat:not(.free) .tb-spot {
+  border: 3px dashed var(--navy);
+  background: #c5d2fb;
+  box-shadow: 0 0 0 3px #c5d2fb, 0 3px 0 3px rgb(4 13 60 / 0.5);
+  color: var(--navy);
+  animation: chipin 0.25s cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+.tb-seat.you .tb-spot {
+  background: #fff;
+  box-shadow: 0 0 0 3px #fff, 0 3px 0 3px rgb(4 13 60 / 0.5);
+}
+.tb-seat.active .tb-spot,
+.tb-seat.win .tb-spot,
+.tb-seat.blackjack .tb-spot {
+  box-shadow: 0 0 0 3px #fff, 0 0 0 7px var(--mint);
 }
 .tb-seat .cards {
   justify-content: center;
-  min-height: 5rem;
+  min-height: 4.8rem;
 }
 .tb-seat .cards .pcard {
   width: 3.3rem;
   height: 4.8rem;
-  margin-left: -1.7rem;
+  margin-left: -1.9rem;
   padding: 0.3rem 0.35rem;
   font-size: 1.05rem;
   text-align: left;
@@ -3794,28 +3823,42 @@ button.tb-seat.free:focus-visible {
 .tb-seat .cards .pcard span {
   font-size: 1.3rem;
 }
+/* Le total garde ses distances avec l'anneau du jeton. */
+.tb-seat .bj-total {
+  margin-bottom: 0.45rem;
+  font-size: 0.875rem;
+}
+.tb-seat .bj-total[hidden] {
+  display: none;
+}
 .tb-name {
-  margin-top: 0.35rem;
+  max-width: 100%;
   overflow: hidden;
+  font-size: 0.875rem;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-shadow: 0 1px 0 rgb(5 18 71 / 0.6);
 }
-.tb-seat .bj-total {
-  font-size: 0.875rem;
+.tb-seat.free .tb-name {
+  visibility: hidden;
 }
-.tb-seat.win .bj-total,
-.tb-seat.blackjack .bj-total {
+.tb-seat.win .tb-name,
+.tb-seat.blackjack .tb-name {
   color: var(--mint);
 }
 .tb-seat.win,
 .tb-seat.blackjack {
-  box-shadow: inset 0 0 0 3px var(--mint);
   animation: tbwin 0.5s ease-out;
 }
 .tb-seat.lose {
-  opacity: 0.7;
-  transition: opacity 0.3s;
+  opacity: 0.6;
+}
+@keyframes chipin {
+  from {
+    transform: translateY(-1rem) scale(0.6);
+    opacity: 0;
+  }
 }
 /* Le temps qui reste avant que la table avance seule ; en menthe quand c'est à vous. */
 .tb-status {
@@ -4505,13 +4548,30 @@ button.tb-seat.free:focus-visible {
   .slot-stage .frame {
     max-width: 100%;
   }
-  .tb-seats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Les cinq places tiennent sur une ligne : cartes et jetons rétrécissent. */
+  .tb-seat {
+    min-height: 9rem;
   }
-  /* Une place libre reste basse ; le tapis reste court. */
-  .tb-seat.free {
-    min-height: 3.25rem;
-    align-self: stretch;
+  .tb-seat .cards {
+    min-height: 3.9rem;
+  }
+  .tb-seat .cards .pcard {
+    width: 2.7rem;
+    height: 3.9rem;
+    margin-left: -1.75rem;
+    padding: 0.25rem 0.3rem;
+    font-size: 0.9375rem;
+  }
+  .tb-seat .cards .pcard span {
+    font-size: 1.05rem;
+  }
+  .tb-spot {
+    width: 2.75rem;
+    height: 2.75rem;
+    font-size: 0.75rem;
+  }
+  .tb-name {
+    font-size: 0.75rem;
   }
   .tb-stage {
     min-height: 0;
