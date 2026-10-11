@@ -1,20 +1,26 @@
 package engine
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 // A shared blackjack table: several players bet on the same deal and play
 // their hands in turn against one dealer. The table waits for a first bet,
-// leaves a moment for others to join, deals, gives each player a limited time
-// to act, plays the dealer, shows the result, and starts over.
+// deals as soon as everyone watching has bet (or after a short moment), gives
+// each player a limited time to act, plays the dealer, shows the result, and
+// starts over. Nothing makes the players wait more than five seconds.
 //
 // This file is the table's rules only. It holds no money and no clock: the
 // server debits and pays the wallets, and passes the time in.
 
 const (
 	TableSeats     = 5
-	tableBetWindow = 12_000 // ms left to the others once a first bet is placed
-	tableTurnTime  = 20_000 // ms to act before standing by default
-	tableShowTime  = 7_000  // ms the result stays on the table
+	tableBetWindow = 5_000 // ms left to the others once a first bet is placed
+	tableTurnTime  = 5_000 // ms to act before standing by default
+	tableShowTime  = 5_000 // ms the result stays on the table
+	tableCardTime  = 150   // ms the screen takes to deal a card: the first turn starts once they are down
+	tablePresence  = 4_000 // ms after which a player who stopped asking is gone
 )
 
 type TableSeat struct {
@@ -36,6 +42,9 @@ type Table struct {
 	Turn     int
 	Deadline int64
 	Round    int64
+	// Present is when each signed-in player last looked at the table: the deal
+	// does not wait for people who are not there.
+	Present map[string]int64
 }
 
 // TableResult is what the server must settle for one player.
@@ -65,12 +74,41 @@ type TableView struct {
 	Seats       []TableSeatView `json:"seats"`
 	Free        int             `json:"free"`      // seats still open
 	Remaining   int64           `json:"remaining"` // ms before the phase moves on by itself
+	Window      int64           `json:"window"`    // ms the phase lasts at most
 	Seated      bool            `json:"seated"`
 	CanBet      bool            `json:"canBet"`
 	Actions     []string        `json:"actions"`
 }
 
-func NewTable() *Table { return &Table{Phase: "waiting", Seats: []*TableSeat{}} }
+func NewTable() *Table {
+	return &Table{Phase: "waiting", Seats: []*TableSeat{}, Present: map[string]int64{}}
+}
+
+// Seen records that a player is looking at the table.
+func (t *Table) Seen(userID string, now int64) { t.Present[userID] = now }
+
+// everyoneIn says whether all the players at the table have placed their bet.
+func (t *Table) everyoneIn(now int64) bool {
+	for id, at := range t.Present {
+		if now-at > tablePresence {
+			delete(t.Present, id)
+			continue
+		}
+		if t.seat(id) == nil {
+			return false
+		}
+	}
+	return true
+}
+
+// Stamp changes whenever something happens at the table.
+func (t *Table) Stamp() string {
+	cards := len(t.Dealer)
+	for _, s := range t.Seats {
+		cards += len(s.Cards)
+	}
+	return fmt.Sprintf("%s/%d/%d/%d/%d/%d", t.Phase, t.Round, t.Turn, t.Deadline, len(t.Seats), cards)
+}
 
 func (t *Table) seat(userID string) *TableSeat {
 	for _, s := range t.Seats {
@@ -101,6 +139,7 @@ func (t *Table) CanBet(userID string, amount int64) error {
 // Bet seats the player. The first bet opens the window for the others.
 func (t *Table) Bet(userID, name string, amount, fromStake, now int64) {
 	t.Seats = append(t.Seats, &TableSeat{UserID: userID, Name: name, Bet: amount, FromStake: fromStake, Cards: []Card{}})
+	t.Seen(userID, now)
 	if t.Phase == "waiting" {
 		t.Phase = "betting"
 		t.Deadline = now + tableBetWindow
@@ -190,7 +229,11 @@ func (t *Table) deal(rng Source, now int64) []TableResult {
 	if bjNatural(t.Dealer) {
 		return t.finish(rng, now)
 	}
-	return t.next(rng, now)
+	res := t.next(rng, now)
+	if t.Phase == "playing" {
+		t.Deadline += int64(tableCardTime * 2 * (len(t.Seats) + 1))
+	}
+	return res
 }
 
 func (t *Table) finish(rng Source, now int64) []TableResult {
@@ -236,7 +279,10 @@ func (t *Table) finish(rng Source, now int64) []TableResult {
 // Tick moves the table on when a deadline has passed. It returns the results
 // to settle when a deal has just ended.
 func (t *Table) Tick(rng Source, now int64) []TableResult {
-	if t.Phase == "waiting" || now < t.Deadline {
+	if t.Phase == "waiting" {
+		return nil
+	}
+	if now < t.Deadline && (t.Phase != "betting" || !t.everyoneIn(now)) {
 		return nil
 	}
 	switch t.Phase {
@@ -279,6 +325,7 @@ func (t *Table) View(userID string, now int64) TableView {
 	}
 	if t.Phase != "waiting" {
 		v.Remaining = max(0, t.Deadline-now)
+		v.Window = map[string]int64{"betting": tableBetWindow, "playing": tableTurnTime, "done": tableShowTime}[t.Phase]
 	}
 	v.CanBet = userID != "" && !v.Seated && v.Free > 0 && (t.Phase == "waiting" || t.Phase == "betting")
 	for i, s := range t.Seats {

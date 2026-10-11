@@ -2669,12 +2669,35 @@ select:focus-visible {
   color: #111730;
   font: 800 1.4rem/1 var(--display);
 }
-/* Une carte qui arrive part de la main du croupier ; la carte cachée se retourne. */
+/* Une carte qui arrive part de la main du croupier, dos visible, et se retourne en se
+   posant ; la carte cachée se retourne sur place. --dx et --dy : d'où elle part, --d : son
+   rang dans la donne. */
+.cards .pcard {
+  position: relative;
+}
 .cards .pcard.new {
-  animation: deal 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.1) backwards;
+  animation: dealcard 0.46s cubic-bezier(0.25, 0.8, 0.35, 1) var(--d, 0ms) backwards;
+}
+.cards .pcard.back.new {
+  animation: dealfly 0.3s cubic-bezier(0.25, 0.8, 0.35, 1) var(--d, 0ms) backwards;
 }
 .cards .pcard.flip {
-  animation: flip 0.45s ease-out;
+  animation: flip 0.42s ease-in-out;
+}
+.cards .pcard.new:not(.back)::after,
+.cards .pcard.flip::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #0b2a94 url('/art/tables/card-back.webp') center / cover;
+  box-shadow: inset 0 0 0 2px #fff;
+  opacity: 0;
+  pointer-events: none;
+  animation: dealback 0.46s linear var(--d, 0ms) backwards;
+}
+.cards .pcard.flip::after {
+  animation: flipback 0.42s linear;
 }
 .cards .pcard:first-child {
   margin-left: 0;
@@ -3105,18 +3128,61 @@ select:focus-visible {
     opacity: 0;
   }
 }
-@keyframes deal {
-  from {
-    transform: translate(3rem, -3rem) rotate(12deg);
+@keyframes dealfly {
+  0% {
+    transform: translate(var(--dx, 3rem), var(--dy, -3rem)) rotate(-16deg) scale(0.7);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+}
+@keyframes dealcard {
+  0% {
+    transform: translate(var(--dx, 3rem), var(--dy, -3rem)) rotate(-16deg) rotateY(0deg) scale(0.7);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  58% {
+    transform: translate(0, 0) rotate(0deg) rotateY(0deg) scale(1);
+  }
+  78% {
+    transform: translate(0, 0) rotate(0deg) rotateY(90deg) scale(1.06);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg) rotateY(0deg) scale(1);
+  }
+}
+@keyframes dealback {
+  0%,
+  78% {
+    opacity: 1;
+  }
+  78.1%,
+  100% {
     opacity: 0;
   }
 }
 @keyframes flip {
-  0% {
+  50% {
     transform: rotateY(90deg) scale(1.08);
   }
+}
+@keyframes flipback {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.1%,
   100% {
-    transform: rotateY(0);
+    opacity: 0;
+  }
+}
+@keyframes tbwin {
+  40% {
+    transform: translateY(-0.4rem) scale(1.05);
   }
 }
 @keyframes shakecup {
@@ -3683,6 +3749,10 @@ select:focus-visible {
   opacity: 0.8;
 }
 .tb-seat.you {
+  color: inherit;
+  font-size: inherit;
+}
+.tb-seat.you {
   box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.55);
 }
 .tb-seat.active {
@@ -3720,8 +3790,40 @@ select:focus-visible {
 .tb-seat.blackjack .bj-total {
   color: var(--mint);
 }
+.tb-seat.win,
+.tb-seat.blackjack {
+  box-shadow: inset 0 0 0 3px var(--mint);
+  animation: tbwin 0.5s ease-out;
+}
 .tb-seat.lose {
   opacity: 0.7;
+  transition: opacity 0.3s;
+}
+/* Le temps qui reste avant que la table avance seule ; en menthe quand c'est à vous. */
+.tb-status {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+}
+.tb-clock {
+  width: min(14rem, 60%);
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--veil);
+}
+.tb-clock[hidden] {
+  display: none;
+}
+.tb-clock i {
+  display: block;
+  height: 100%;
+  background: #fff;
+  transform-origin: 0 50%;
+  transition: transform 0.2s linear;
+}
+.tb-clock.mine i {
+  background: var(--mint);
 }
 
 /* Crash : le sous-marin descend le long de sa route ; plus bas, la coque cède. */
@@ -4387,6 +4489,29 @@ select:focus-visible {
   }
   .tb-seats {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  /* Les places libres sont dites par le message ; le tapis reste court. */
+  .tb-seat.free {
+    display: none;
+  }
+  .tb-stage {
+    min-height: 0;
+    gap: 0.6rem;
+  }
+  .tb-stage .croupier {
+    width: 5.5rem;
+  }
+  /* Cinq secondes pour jouer : quand c'est son tour, les trois actions tiennent au bas de
+     l'écran, sous le pouce, sans avoir à descendre jusqu'aux réglages. */
+  .tb-panel.turn .bj-actions {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 15;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0;
+    padding: 0.6rem 1rem calc(0.6rem + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: var(--surface);
   }
   .steps,
   .lead {

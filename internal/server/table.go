@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -18,6 +19,37 @@ type room struct {
 	mu    sync.Mutex
 	table *engine.Table
 	srv   *Server
+	// rev counts what has happened at the table. A screen that already shows
+	// the current one is answered when the next thing happens, so nobody
+	// learns of a card a second late.
+	rev     int64
+	stamp   string
+	changed chan struct{}
+}
+
+// tableHold is how long a request waits for news before being answered anyway.
+const tableHold = 2 * time.Second
+
+// moved wakes the requests waiting for news; the caller holds the lock.
+func (r *room) moved() {
+	stamp := r.table.Stamp()
+	if stamp == r.stamp {
+		return
+	}
+	r.stamp = stamp
+	r.rev++
+	if r.changed != nil {
+		close(r.changed)
+		r.changed = nil
+	}
+}
+
+// news is closed at the next change; the caller holds the lock.
+func (r *room) news() <-chan struct{} {
+	if r.changed == nil {
+		r.changed = make(chan struct{})
+	}
+	return r.changed
 }
 
 func nowMs() int64 { return time.Now().UnixMilli() }
@@ -44,6 +76,7 @@ func (r *room) settle(ctx context.Context, results []engine.TableResult) {
 // tick moves the table on; the caller holds the lock.
 func (r *room) tick(ctx context.Context) {
 	r.settle(ctx, r.table.Tick(engine.Secure, nowMs()))
+	r.moved()
 }
 
 // run keeps the table moving while nobody is asking for it.
@@ -76,6 +109,7 @@ func (r *room) close(ctx context.Context) {
 		}
 	}
 	r.table = engine.NewTable()
+	r.moved()
 }
 
 func (r *room) answer(ctx context.Context, u *store.User) (any, error) {
@@ -95,6 +129,7 @@ func (r *room) answer(ctx context.Context, u *store.User) (any, error) {
 		out["user"] = acc
 	}
 	out["table"] = r.table.View(id, nowMs())
+	out["rev"] = r.rev
 	return out, nil
 }
 
@@ -103,10 +138,30 @@ func (s *Server) tableState(w http.ResponseWriter, r *http.Request) (any, error)
 	if err != nil {
 		return nil, err
 	}
-	s.room.mu.Lock()
-	defer s.room.mu.Unlock()
-	s.room.tick(r.Context())
-	return s.room.answer(r.Context(), u)
+	rm := s.room
+	look := func() {
+		rm.tick(r.Context())
+		if u != nil {
+			rm.table.Seen(u.ID, nowMs())
+		}
+	}
+	rm.mu.Lock()
+	look()
+	if rev := r.URL.Query().Get("rev"); rev != "" && rev == strconv.FormatInt(rm.rev, 10) {
+		news := rm.news()
+		rm.mu.Unlock()
+		hold := time.NewTimer(tableHold)
+		select {
+		case <-news:
+		case <-hold.C:
+		case <-r.Context().Done():
+		}
+		hold.Stop()
+		rm.mu.Lock()
+		look()
+	}
+	defer rm.mu.Unlock()
+	return rm.answer(r.Context(), u)
 }
 
 func (s *Server) tableBet(w http.ResponseWriter, r *http.Request) (any, error) {
@@ -142,6 +197,7 @@ func (s *Server) tableBet(w http.ResponseWriter, r *http.Request) (any, error) {
 		return nil, err
 	}
 	rm.table.Bet(u.ID, u.Name, body.Bet, fromStake, nowMs())
+	rm.moved()
 	return rm.answer(r.Context(), u)
 }
 
@@ -181,5 +237,6 @@ func (s *Server) tableAction(w http.ResponseWriter, r *http.Request) (any, error
 		}
 	}
 	rm.settle(r.Context(), rm.table.Act(engine.Secure, body.Action, fromStake, nowMs()))
+	rm.moved()
 	return rm.answer(r.Context(), u)
 }

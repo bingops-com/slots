@@ -447,3 +447,44 @@ func TestPokerChips(t *testing.T) {
 	}
 	t.Logf("%d hands, players brought %d and left with %d", hands, in, out)
 }
+
+// The shared table never keeps its players waiting: the deal starts as soon as
+// everyone looking at the table has bet, and five seconds after the first bet
+// at the latest.
+func TestTableWaits(t *testing.T) {
+	rng := seeded(3)
+	tb := NewTable()
+	tb.Seen("a", 0)
+	tb.Bet("a", "Alice", 100, 0, 0)
+	tb.Tick(rng, 1)
+	if tb.Phase == "betting" {
+		t.Fatal("a player alone at the table waited for the deal")
+	}
+
+	tb = NewTable()
+	tb.Seen("b", 0)
+	tb.Bet("a", "Alice", 100, 0, 0)
+	for now := int64(0); now < tableBetWindow; now += 500 {
+		tb.Seen("b", now)
+		if tb.Tick(rng, now); tb.Phase != "betting" {
+			t.Fatalf("dealt at %d ms without the player who had not bet yet", now)
+		}
+	}
+	tb.Tick(rng, tableBetWindow)
+	if tb.Phase == "betting" {
+		t.Fatal("the bets stayed open more than five seconds")
+	}
+	for _, w := range []int64{tableBetWindow, tableTurnTime, tableShowTime} {
+		if w > 5_000 {
+			t.Fatalf("a wait of %d ms", w)
+		}
+	}
+	// A player who stopped looking does not hold the deal back.
+	tb = NewTable()
+	tb.Seen("b", 0)
+	tb.Bet("a", "Alice", 100, 0, tablePresence+1)
+	tb.Tick(rng, tablePresence+2)
+	if tb.Phase == "betting" {
+		t.Fatal("the deal waited for a player who had left")
+	}
+}
