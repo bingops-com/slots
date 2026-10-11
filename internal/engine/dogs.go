@@ -3,9 +3,11 @@ package engine
 // "Chiens de bord" follows the rules of The Dog House: 5x3, 20 lines, wilds on
 // the three middle reels that carry a multiplier of 2 or 3 (those on a same
 // line add up), and three scatters on reels 1, 3 and 5 that pay 5 times the
-// bet and open free spins: nine barrels each give 1, 2 or 3 spins, and every
-// wild that lands during them stays in place with its multiplier. Free spins
-// do not retrigger. The paytable is the game's; its reels are not public, so
+// bet and open free spins: nine barrels each give 1, 2 or 3 spins. As in the
+// Megaways version of the game, the player picks one of two bonuses: sticky
+// wilds, where every wild that lands stays in place with its multiplier, or
+// raining wilds, where wilds drop on the middle reels at every spin and leave
+// with it. Free spins do not retrigger. The paytable is the game's; its reels are not public, so
 // the layout of the lines is the usual one and the weights below are tuned by
 // simulation on its known figures (return 96.51 %, a win on 27.55 % of spins,
 // free spins every 180 spins, maximum win 6,750 times the bet).
@@ -17,6 +19,10 @@ const (
 	DogsBuyCost = 100
 
 	dogsScatterPay = 5
+
+	// The two bonuses.
+	DogsSticky = "sticky"
+	DogsRain   = "rain"
 )
 
 var dogsLines = [][dogsCols]int{
@@ -45,6 +51,10 @@ var (
 	dogsScatter  = 7.8  // reels 1, 3 and 5; at most one per reel
 	dogsWildMult = []weight[float64]{{2, 65}, {3, 35}}
 	dogsBarrel   = []weight[int]{{1, 50}, {2, 32}, {3, 18}}
+	// Raining wilds: one to four drop at each spin. Tuned so that this bonus is
+	// worth what the sticky one is, triggered or bought; it pays more evenly.
+	dogsRainCount    = []weight[int]{{1, 27}, {2, 38}, {3, 24}, {4, 11}}
+	dogsRainCountBuy = []weight[int]{{1, 23}, {2, 36}, {3, 27}, {4, 14}}
 )
 
 type DogsCell struct {
@@ -68,11 +78,13 @@ type DogsSpin struct {
 	Grid DogsGrid  `json:"grid"`
 	Wins []DogsWin `json:"wins"`
 	Win  float64   `json:"win"`
-	Held [][2]int  `json:"held,omitempty"` // free spins: the wilds kept from earlier spins
+	Held [][2]int  `json:"held,omitempty"` // sticky wilds: those kept from earlier spins
+	Rain [][2]int  `json:"rain,omitempty"` // raining wilds: where they dropped at this spin
 	Left int       `json:"left"`
 }
 
 type DogsBonus struct {
+	Mode    string     `json:"mode"`    // DogsSticky or DogsRain
 	Barrels []int      `json:"barrels"` // the nine draws that set the number of spins
 	Spins   []DogsSpin `json:"spins"`
 	Total   float64    `json:"total"`
@@ -169,13 +181,44 @@ func dogsEval(grid DogsGrid) ([]DogsWin, float64) {
 	return wins, total
 }
 
-func dogsFreeSpins(rng Source, budget, wild float64) *DogsBonus {
-	b := &DogsBonus{Barrels: make([]int, 9), Spins: []DogsSpin{}}
+// dogsBarrels draws the nine barrels and returns the number of spins they give.
+func dogsBarrels(rng Source, b *DogsBonus) int {
+	b.Barrels = make([]int, 9)
 	count := 0
 	for i := range b.Barrels {
 		b.Barrels[i] = weighted(rng, dogsBarrel)
 		count += b.Barrels[i]
 	}
+	return count
+}
+
+// dogsRainSpins plays the raining-wilds bonus: no wild comes with the reels,
+// they drop afterwards on distinct cells of the middle reels.
+func dogsRainSpins(rng Source, budget float64, counts []weight[int]) *DogsBonus {
+	b := &DogsBonus{Mode: DogsRain, Spins: []DogsSpin{}}
+	for left := dogsBarrels(rng, b) - 1; left >= 0 && b.Total < budget; left-- {
+		grid := dogsDraw(rng, 0, false)
+		spin := DogsSpin{Left: left, Rain: [][2]int{}}
+		for n := weighted(rng, counts); n > 0; {
+			c, r := 1+intn(rng, 3), intn(rng, dogsRows)
+			if grid[c][r].S == "WILD" {
+				continue
+			}
+			grid[c][r] = DogsCell{S: "WILD", V: weighted(rng, dogsWildMult)}
+			spin.Rain = append(spin.Rain, [2]int{c, r})
+			n--
+		}
+		spin.Grid = grid
+		spin.Wins, spin.Win = dogsEval(grid)
+		b.Total += spin.Win
+		b.Spins = append(b.Spins, spin)
+	}
+	return b
+}
+
+func dogsFreeSpins(rng Source, budget, wild float64) *DogsBonus {
+	b := &DogsBonus{Mode: DogsSticky, Spins: []DogsSpin{}}
+	count := dogsBarrels(rng, b)
 	type held struct {
 		c, r int
 		v    float64
@@ -204,9 +247,10 @@ func dogsFreeSpins(rng Source, budget, wild float64) *DogsBonus {
 	return b
 }
 
-// DogsPlay plays one full round, free spins included. A bought round displays
-// the three triggering scatters and pays only the free-spins feature.
-func DogsPlay(rng Source, buy bool) *DogsResult {
+// DogsPlay plays one full round, free spins included, with the bonus the player
+// picked (DogsSticky unless DogsRain). A bought round displays the three
+// triggering scatters and pays only the free-spins feature.
+func DogsPlay(rng Source, buy bool, mode string) *DogsResult {
 	grid := dogsDraw(rng, dogsWild, true)
 	if buy {
 		grid = dogsBought(rng)
@@ -227,16 +271,18 @@ func DogsPlay(rng Source, buy bool) *DogsResult {
 			total += res.ScatterPay
 		}
 		if total < DogsMaxWin {
-			wild := dogsFreeWild
-			if buy {
-				wild = dogsBuyWild
+			switch {
+			case mode == DogsRain && buy:
+				res.Bonus = dogsRainSpins(rng, DogsMaxWin-total, dogsRainCountBuy)
+			case mode == DogsRain:
+				res.Bonus = dogsRainSpins(rng, DogsMaxWin-total, dogsRainCount)
+			case buy:
+				res.Bonus = dogsFreeSpins(rng, DogsMaxWin-total, dogsBuyWild)
+			default:
+				res.Bonus = dogsFreeSpins(rng, DogsMaxWin-total, dogsFreeWild)
 			}
-			res.Bonus = dogsFreeSpins(rng, DogsMaxWin-total, wild)
 			res.Bonus.Total = min(res.Bonus.Total, DogsMaxWin-total)
 			res.Awarded = len(res.Bonus.Spins)
-			for _, n := range res.Bonus.Barrels {
-				_ = n
-			}
 			total += res.Bonus.Total
 		}
 	}
@@ -246,4 +292,4 @@ func DogsPlay(rng Source, buy bool) *DogsResult {
 }
 
 // DogsSpinRound keeps the simulation and callers of the base game concise.
-func DogsSpinRound(rng Source) *DogsResult { return DogsPlay(rng, false) }
+func DogsSpinRound(rng Source) *DogsResult { return DogsPlay(rng, false, DogsSticky) }

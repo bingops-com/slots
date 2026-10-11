@@ -148,6 +148,7 @@ type request struct {
 	Rows   int           `json:"rows"`
 	Risk   string        `json:"risk"`
 	Ante   bool          `json:"ante"`
+	Mode   string        `json:"mode"`
 }
 
 func parseBet(v *int64) (int64, error) {
@@ -329,10 +330,18 @@ func (e *Engine) Do(w *Wallet, action string, body []byte) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		if req.Buy != "" && req.Buy != "fs" {
+		// "fs" buys the sticky wilds, "rain" the raining wilds; without a purchase,
+		// mode says which of the two the scatters open.
+		mode := DogsSticky
+		switch {
+		case req.Buy == "rain", req.Buy == "" && req.Mode == DogsRain:
+			mode = DogsRain
+		case req.Buy != "" && req.Buy != "fs":
 			return nil, Error("Achat inconnu")
+		case req.Mode != "" && req.Mode != DogsSticky && req.Mode != DogsRain:
+			return nil, Error("Bonus inconnu")
 		}
-		buy := req.Buy == "fs"
+		buy := req.Buy != ""
 		cost := bet
 		if buy {
 			cost *= DogsBuyCost
@@ -340,7 +349,7 @@ func (e *Engine) Do(w *Wallet, action string, body []byte) (any, error) {
 		if err := w.debit(cost); err != nil {
 			return nil, err
 		}
-		res := DogsPlay(e.Rng, buy)
+		res := DogsPlay(e.Rng, buy, mode)
 		res.Round = Round{Bet: bet, Cost: cost, Payout: int64(math.Round(float64(bet) * res.TotalMult))}
 		e.settle(w, "dogs", cost, res.Payout)
 		return res, nil
