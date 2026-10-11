@@ -36,7 +36,13 @@ SHEETS = {
     "neptune": ["s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9"],
     "reef": ["s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9"],
     "dogs": ["dog4", "dog3", "dog2", "dog1", "collar", "bone", "wild", "scatter", "bowl"],
+    # Les icônes de l'interface : la navigation, puis les outils (son, langue, compte…).
+    "nav": ["home", "trophy", "cards", "dealer", "chips", "wheel", "dice", "clam", "plinko"],
+    "ui": ["sub", "bell", "bell-off", "globe", "cap", "rowboat", "spyglass", "coin", "anchor"],
 }
+# Une icône s'affiche à une trentaine de pixels : elle est gardée bien plus petite qu'un symbole.
+ICON = 128
+ICONS = {"nav", "ui"}
 
 
 def sheet(game: Path, names: list[str], dest: Path) -> None:
@@ -54,7 +60,7 @@ def sheet(game: Path, names: list[str], dest: Path) -> None:
             for xy in ((k, 0), (k, side - 1), (0, k), (side - 1, k)):
                 if cell.getpixel(xy)[3]:
                     ImageDraw.floodfill(cell, xy, (0, 0, 0, 0), thresh=14)
-        cutout(cell, SYMBOL).save(dest / f"{name}.webp", quality=90, method=6)
+        cutout(cell, ICON if game.name in ICONS else SYMBOL).save(dest / f"{name}.webp", quality=90, method=6)
     print(f"{game.name}/  planche de {len(names)} symboles")
 
 

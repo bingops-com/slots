@@ -94,7 +94,10 @@ bets have brought in).
   `art/build.py` from `art/<game>/src`. They keep the lab palette: the blues,
   white and pale blue, mint for the special symbols, and nothing gold, brown or
   textured. The interface around the stage stays as sober as everywhere else,
-  and the navigation pictograms stay in SVG.
+  and the icons of the interface are drawn in the same hand: one per game in the
+  navigation (`art/nav`), one per tool (`art/ui`: the ship's bell for the sound, a globe
+  for the language, a spyglass for full screen, a coin struck with a ship's wheel for the
+  credit). They are white, so outside a blue surface they sit on a small blue tile.
 - Table games get the same treatment, without a colour of their own: each has
   a backdrop and a character or an object that carries it (`art/tables/src`).
   Blackjack is played in the captain's cabin, dealt by an octopus; the roulette

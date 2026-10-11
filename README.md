@@ -188,7 +188,7 @@ hors ligne on s'entraîne, et le libellé du solde le dit (« À miser » ou
 « Entraînement »). Sur téléphone, la bande devient un en-tête qui reste en vue
 (logo, solde, menu) ; le compte, la langue, le son et la navigation sont dans le
 menu, et la scène vient juste dessous, suivie des réglages puis de « Remettre à
-10 000 » (ou « Demander une avance ») et du plein écran. L'accueil occupe toute
+10 000 » (ou « Demander une avance ») et du plein écran. Les icônes sont dessinées pour le lieu : chaque jeu a la sienne dans la navigation (la pieuvre du blackjack à plusieurs, la barre-roulette, le coquillage des mines), le son est une cloche de bord, la langue un globe, le plein écran une longue-vue, et le crédit une pièce frappée d'une barre de navire. L'accueil occupe toute
 la largeur de l'écran. Chaque jeu y a son affiche : une scène où son personnage ou son objet est en action (le duel de Mort ou Vif, la pieuvre qui distribue, le crabe qui lance les dés), préparée par `art/build.py`. Dans la navigation, chaque famille de jeux se replie sous
 son titre, et le choix est retenu.
 
