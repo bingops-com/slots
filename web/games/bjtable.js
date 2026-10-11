@@ -4,12 +4,19 @@ import { Sound } from '../lib/sound.js';
 import { createFx } from '../lib/fx.js';
 
 // La table de blackjack à plusieurs : cinq places, une donne commune, chacun joue sa main
-// à son tour contre le même croupier, de la première place à la dernière. On choisit sa
-// place en la touchant sur le tapis. La donne part dès que tous les joueurs présents ont
-// misé, et personne n'attend plus de cinq secondes. Tout se passe sur le serveur : l'écran
+// à son tour contre le même croupier, de la première place à la dernière. Chaque place est
+// un rond où l'on pose sa mise en le touchant ; un joueur peut en prendre plusieurs et joue
+// alors plusieurs mains. La donne part dès que tous les joueurs présents la demandent, et
+// personne n'attend plus de cinq secondes. Tout se passe sur le serveur : l'écran
 // lui demande ce qui a changé, et la réponse arrive au moment où quelque chose se passe.
 const pic = (name) => `<img class="pic" src="/art/tables/${name}.webp" alt="" draggable="false">`;
-const LABEL = { win: 'gagné', lose: 'perdu', push: 'égalité', blackjack: 'blackjack' };
+const LABEL = { win: 'Gagné', lose: 'Perdu', push: 'Égalité', blackjack: 'Blackjack' };
+// Le montant écrit sur un jeton : court, sans centimes inutiles.
+const chip = (cents) => {
+  const v = cents / 100;
+  const short = (n) => String(Math.round(n * 10) / 10).replace('.', ',');
+  return v >= 1000 ? `${short(v / 1000)}k` : short(v);
+};
 const PLACES = 5;
 const secs = (ms) => Math.max(1, Math.ceil(ms / 1000));
 // Le rythme du tirage : entre deux cartes de la donne, le trajet d'une carte depuis la main
@@ -50,7 +57,7 @@ const game = {
           <button class="btn quiet" data-act="stand">Rester</button>
           <button class="btn quiet" data-act="double">Doubler</button>
         </div>
-        <p class="hint">Cinq places : touchez celle où vous voulez miser. La donne part dès que tous les joueurs présents ont misé, cinq secondes au plus après la première mise. Cinq secondes pour jouer, sinon la main reste. Blackjack payé 3 pour 2, le croupier reste à 17.</p>
+        <p class="hint">Cinq places : touchez un rond pour y poser votre mise, plusieurs si vous voulez jouer plusieurs mains, puis demandez la donne. Elle part dès que tous les joueurs présents l'ont demandée, cinq secondes au plus après la première mise. Cinq secondes pour jouer, sinon la main reste. Blackjack payé 3 pour 2, le croupier reste à 17.</p>
       </div>
       <div class="stage bj-stage tb-stage">
         <div class="scene" aria-hidden="true"><i class="scenery" style="background-image:url(/art/tables/blackjack-stage.webp)"></i></div>
@@ -108,9 +115,19 @@ const game = {
       return node;
     }
 
-    function seatNode(name) {
-      const node = el('<div class="tb-seat"><div class="cards"></div><div class="tb-name"></div><div class="bj-total"><span></span> <small></small></div></div>');
-      return { node, list: $('.cards', node), name: $('.tb-name', node), sum: $('.bj-total span', node), bet: $('small', node), cards: [], who: name };
+    // Une main : ses cartes, son total, le jeton de sa mise dans le rond, et à qui elle est.
+    function seatNode(pos) {
+      const node = el('<div class="tb-seat"><div class="cards"></div><div class="bj-total" hidden><span></span></div><div class="tb-spot"></div><div class="tb-name"></div></div>');
+      const pill = $('.bj-total', node);
+      const text = $('span', pill);
+      // Le total s'écrit par ici : la pastille disparaît tant qu'il n'y a rien à dire.
+      const sum = {
+        set textContent(v) {
+          text.textContent = v;
+          pill.hidden = v === '';
+        },
+      };
+      return { node, list: $('.cards', node), name: $('.tb-name', node), sum, bet: $('.tb-spot', node), cards: [], pos };
     }
 
     // Le message et la jauge suivent l'horloge de la table entre deux réponses du serveur.
@@ -119,17 +136,19 @@ const game = {
       if (!now || gone) return;
       const { t, until } = now;
       const left = Math.max(0, until - performance.now());
-      const you = t.seats.find((s) => s.you);
+      const mine = t.seats.filter((s) => s.you);
       const turn = t.seats.find((s) => s.turn);
+      const staked = mine.reduce((n, s) => n + s.bet, 0);
+      const paid = mine.reduce((n, s) => n + (s.payout || 0), 0);
       let text = 'Donne terminée';
       if (t.phase === 'waiting') text = "En attente qu'un joueur mise";
       else if (t.phase === 'betting') text = `Les mises ferment dans ${secs(left)} s${t.free ? `, ${t.free} place${t.free > 1 ? 's' : ''} libre${t.free > 1 ? 's' : ''}` : ''}`;
       else if (t.phase === 'playing') text = turn && turn.you ? `À vous de jouer (${secs(Math.min(left, t.window))} s)` : `Au tour de ${turn ? turn.name : '…'} (${secs(Math.min(left, t.window))} s)`;
-      else if (you) text = you.payout > you.bet ? `Gagné ${App.coin(you.payout)}` : you.payout === you.bet ? 'Égalité, mise rendue' : 'Perdu';
+      else if (mine.length) text = paid > staked ? `Gagné ${App.coin(paid)}` : paid === staked ? 'Égalité, mise rendue' : paid ? `Récupéré ${App.coin(paid)}` : 'Perdu';
       if (msg.dataset.text !== text) {
         msg.dataset.text = text;
         // Seul le gain porte un pictogramme ; un nom de joueur reste du texte.
-        if (text.startsWith('Gagné ')) msg.innerHTML = text;
+        if (/^(Gagné|Récupéré) /.test(text)) msg.innerHTML = text;
         else msg.textContent = text;
       }
       clockBar.hidden = t.phase === 'waiting';
@@ -143,7 +162,7 @@ const game = {
 
     async function sync(t, at) {
       const dealerCards = t.dealer.length + (t.hole ? 1 : 0);
-      const behind = shown.dealer.length + (shown.hole ? 1 : 0) > Math.max(dealerCards, t.dealer.length) || [...shown.seats.values()].some((v) => v.cards.length > (t.seats.find((s) => s.name === v.who)?.cards.length ?? 0));
+      const behind = shown.dealer.length + (shown.hole ? 1 : 0) > Math.max(dealerCards, t.dealer.length) || [...shown.seats.values()].some((v) => v.cards.length > (t.seats.find((s) => s.pos === v.pos)?.cards.length ?? 0));
       if (t.round !== shown.round || behind) clear();
       shown.round = t.round;
 
@@ -152,24 +171,27 @@ const game = {
       const places = Array.from({ length: PLACES }, (_, i) => t.seats.find((s) => s.pos === i));
       const layout = `${places.map((s) => (s ? s.name : '')).join('\n')}\n${t.canBet}`;
       if (layout !== shown.layout) {
-        const seats = new Map(t.seats.map((s) => [s.name, shown.seats.get(s.name) || seatNode(s.name)]));
+        const seats = new Map(t.seats.map((s) => [s.pos, shown.seats.get(s.pos) || seatNode(s.pos)]));
         seatsEl.replaceChildren(
           ...places.map((s, i) =>
-            s ? seats.get(s.name).node : el(t.canBet ? `<button type="button" class="tb-seat free" data-pos="${i}"><span class="tb-name">Miser ici</span></button>` : '<div class="tb-seat free"><div class="tb-name">Place libre</div></div>'),
+            s
+              ? seats.get(s.pos).node
+              : el(`<div class="tb-seat free">${t.canBet ? `<button type="button" class="tb-spot" data-pos="${i}" aria-label="Miser ici" title="Miser ici">+</button>` : '<div class="tb-spot"></div>'}<div class="tb-name">Place libre</div></div>`),
           ),
         );
         shown.seats = seats;
         shown.layout = layout;
       }
       for (const s of t.seats) {
-        const v = shown.seats.get(s.name);
+        const v = shown.seats.get(s.pos);
         v.node.classList.toggle('you', Boolean(s.you));
-        v.name.textContent = s.you ? 'Vous' : s.name;
-        v.bet.textContent = App.fmt(s.bet);
+        if (!s.result) v.name.textContent = s.you ? 'Vous' : s.name;
+        v.bet.textContent = chip(s.bet);
+        v.bet.title = App.fmt(s.bet);
       }
       if (t.phase !== 'done') {
         say(t, at);
-        for (const s of t.seats) shown.seats.get(s.name).node.classList.toggle('active', Boolean(s.turn));
+        for (const s of t.seats) shown.seats.get(s.pos).node.classList.toggle('active', Boolean(s.turn));
       }
 
       // La donne, dans l'ordre d'une vraie table : une carte à chacun, une au croupier, puis
@@ -178,7 +200,7 @@ const game = {
       const rows = Math.max(0, ...t.seats.map((s) => s.cards.length));
       for (let j = 0; j < rows; j++) {
         for (const s of t.seats) {
-          const v = shown.seats.get(s.name);
+          const v = shown.seats.get(s.pos);
           if (j >= v.cards.length && j < s.cards.length) queue.push({ v, c: s.cards[j] });
         }
         if (j === 0 && !shown.dealer.length && t.dealer.length) queue.push({ c: t.dealer[0] });
@@ -235,15 +257,17 @@ const game = {
       // Les cartes sont posées : les totaux, puis le verdict de chaque main.
       dealerSum.textContent = shown.dealer.length ? points(shown.dealer) : '';
       for (const s of t.seats) {
-        const v = shown.seats.get(s.name);
-        v.sum.textContent = `${s.cards.length ? s.total : ''}${s.result ? `${s.cards.length ? ', ' : ''}${LABEL[s.result]}` : ''}`;
+        const v = shown.seats.get(s.pos);
+        v.sum.textContent = s.cards.length ? String(s.total) : '';
+        // Le verdict prend la place du nom sous le jeton.
+        if (s.result) v.name.textContent = LABEL[s.result];
         v.node.classList.toggle('active', Boolean(s.turn));
         for (const r of Object.keys(LABEL)) v.node.classList.toggle(r, s.result === r);
       }
       say(t, at);
 
       // Ce qui vient de changer pour le joueur : son tour qui commence, sa donne qui finit.
-      const you = t.seats.find((s) => s.you);
+      const hands = t.seats.filter((s) => s.you);
       const mine = t.actions.length > 0;
       if (mine && !myTurn) {
         if (!rush) Sound.play('arm');
@@ -252,10 +276,11 @@ const game = {
       }
       myTurn = mine;
       panel.classList.toggle('turn', mine);
-      if (t.phase === 'done' && phase !== 'done' && you && !rush) {
-        Sound.play(you.result === 'blackjack' ? 'big' : you.payout > you.bet ? 'line' : you.payout === you.bet ? 'arm' : 'lose', 2);
-        const node = $('.tb-seat.you', root);
-        if (node && you.payout > you.bet) fx.blast(node, you.result === 'blackjack' ? 0.8 : 0.3, 0.9);
+      if (t.phase === 'done' && phase !== 'done' && hands.length && !rush) {
+        const staked = hands.reduce((n, s) => n + s.bet, 0);
+        const paid = hands.reduce((n, s) => n + s.payout, 0);
+        Sound.play(hands.some((s) => s.result === 'blackjack') ? 'big' : paid > staked ? 'line' : paid === staked ? 'arm' : 'lose', 2);
+        for (const s of hands) if (s.payout > s.bet) fx.blast(shown.seats.get(s.pos).bet, s.result === 'blackjack' ? 0.8 : 0.3, 0.9);
       }
       phase = t.phase;
       state = t;
@@ -267,9 +292,10 @@ const game = {
     function controls() {
       const t = state;
       $$('[data-act]', root).forEach((b) => (b.disabled = busy || !t || !t.actions.includes(b.dataset.act)));
-      play.disabled = busy || !t || !t.canBet;
+      // Le bouton pose la mise, puis demande la donne une fois les mises posées.
+      play.disabled = busy || !t || !(t.canBet || t.canReady);
       if (!t) return;
-      play.textContent = t.seated && t.phase !== 'done' ? 'Mise posée' : t.canBet ? 'Miser' : t.free ? 'Donne en cours' : 'Table complète';
+      play.textContent = t.canReady ? 'Distribuer' : t.canBet ? 'Miser' : t.ready && t.phase === 'betting' ? 'Mises posées' : t.free || t.phase !== 'betting' ? 'Donne en cours' : 'Table complète';
       bet.lock(!t.canBet);
     }
 
@@ -304,30 +330,35 @@ const game = {
     }
 
     async function call(path, body) {
-      if (busy) return;
+      if (busy) return null;
       busy = true;
       controls();
       try {
         const res = await App.api(path, body);
         busy = false;
         take(res);
+        return res;
       } catch (e) {
         busy = false;
         controls();
         App.toast(e.message);
+        return null;
       }
     }
 
-    // Le bouton reprend la place choisie la dernière fois, si elle est libre ; sinon la
-    // première libre.
-    const sit = (seat) => {
-      if (seat !== undefined) store.set('table.seat', String(seat));
-      return call('/api/table/bet', { bet: bet.value, seat });
+    // Les places prises sont retenues : à la donne suivante, le bouton les reprend toutes.
+    const sit = async (seat) => {
+      const res = await call('/api/table/bet', { bet: bet.value, seat });
+      if (res) store.set('table.seats', res.table.seats.filter((s) => s.you).map((s) => s.pos).join(','));
+      return res;
     };
-    play.onclick = () => {
-      const last = store.get('table.seat');
-      const free = last !== null && state && !state.seats.some((s) => s.pos === Number(last));
-      return sit(free ? Number(last) : undefined);
+    play.onclick = async () => {
+      if (state && state.canReady) return call('/api/table/ready', {});
+      const taken = new Set(state ? state.seats.map((s) => s.pos) : []);
+      const last = (store.get('table.seats') || '').split(',').filter(Boolean).map(Number).filter((p) => !taken.has(p));
+      if (!last.length) return sit(undefined);
+      for (const p of last) if (!(await sit(p))) break;
+      store.set('table.seats', last.join(','));
     };
     seatsEl.onclick = (e) => {
       const b = e.target.closest('button[data-pos]');

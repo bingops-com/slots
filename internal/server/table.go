@@ -208,6 +208,28 @@ func (s *Server) tableBet(w http.ResponseWriter, r *http.Request) (any, error) {
 	return rm.answer(r.Context(), u)
 }
 
+// tableReady is a player saying their bets are all down: the deal does not
+// wait for the clock when everyone at the table has said so.
+func (s *Server) tableReady(w http.ResponseWriter, r *http.Request) (any, error) {
+	u, err := s.user(r)
+	if err != nil {
+		return nil, err
+	}
+	if u == nil {
+		return nil, errAuth
+	}
+	rm := s.room
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+	rm.tick(r.Context())
+	if !rm.table.CanReady(u.ID) {
+		return nil, engine.Error("Posez d'abord une mise")
+	}
+	rm.table.SetReady(u.ID, nowMs())
+	rm.tick(r.Context())
+	return rm.answer(r.Context(), u)
+}
+
 func (s *Server) tableAction(w http.ResponseWriter, r *http.Request) (any, error) {
 	u, err := s.user(r)
 	if err != nil {

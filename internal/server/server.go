@@ -80,6 +80,7 @@ func New(st *store.Store, web fs.FS, cfg Config) (*Server, error) {
 	api.HandleFunc("GET /api/feed", s.handle(s.feed))
 	api.HandleFunc("GET /api/table", s.handle(s.tableState))
 	api.HandleFunc("POST /api/table/bet", s.handle(s.tableBet))
+	api.HandleFunc("POST /api/table/ready", s.handle(s.tableReady))
 	api.HandleFunc("POST /api/table/action", s.handle(s.tableAction))
 	api.HandleFunc("GET /api/poker", s.handle(s.pokerState))
 	api.HandleFunc("POST /api/poker/sit", s.handle(s.pokerSit))
