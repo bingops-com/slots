@@ -24,6 +24,7 @@ const (
 )
 
 type TableSeat struct {
+	Pos       int // which of the five places, from the dealer's left; hands are played in that order
 	UserID    string
 	Name      string
 	Cards     []Card
@@ -55,6 +56,7 @@ type TableResult struct {
 }
 
 type TableSeatView struct {
+	Pos    int    `json:"pos"`
 	Name   string `json:"name"`
 	Cards  []Card `json:"cards"`
 	Total  int    `json:"total"`
@@ -119,8 +121,30 @@ func (t *Table) seat(userID string) *TableSeat {
 	return nil
 }
 
-// CanBet says whether the player may join the coming deal.
-func (t *Table) CanBet(userID string, amount int64) error {
+// place is the place the player gets: the one asked for, or the first free one
+// when pos is negative. It is -1 when that cannot be.
+func (t *Table) place(pos int) int {
+	taken := [TableSeats]bool{}
+	for _, s := range t.Seats {
+		taken[s.Pos] = true
+	}
+	if pos >= 0 {
+		if pos >= TableSeats || taken[pos] {
+			return -1
+		}
+		return pos
+	}
+	for i, used := range taken {
+		if !used {
+			return i
+		}
+	}
+	return -1
+}
+
+// CanBet says whether the player may join the coming deal at that place (any
+// free place when pos is negative).
+func (t *Table) CanBet(userID string, amount int64, pos int) error {
 	if amount < minBet || amount > maxBet {
 		return Error("Mise invalide")
 	}
@@ -133,12 +157,21 @@ func (t *Table) CanBet(userID string, amount int64) error {
 	if len(t.Seats) >= TableSeats {
 		return Error("La table est complète")
 	}
+	if t.place(pos) < 0 {
+		return Error("Cette place est prise")
+	}
 	return nil
 }
 
-// Bet seats the player. The first bet opens the window for the others.
-func (t *Table) Bet(userID, name string, amount, fromStake, now int64) {
-	t.Seats = append(t.Seats, &TableSeat{UserID: userID, Name: name, Bet: amount, FromStake: fromStake, Cards: []Card{}})
+// Bet seats the player at a place accepted by CanBet. The first bet opens the
+// window for the others.
+func (t *Table) Bet(userID, name string, amount, fromStake int64, pos int, now int64) {
+	seat := &TableSeat{Pos: t.place(pos), UserID: userID, Name: name, Bet: amount, FromStake: fromStake, Cards: []Card{}}
+	at := 0
+	for at < len(t.Seats) && t.Seats[at].Pos < seat.Pos {
+		at++
+	}
+	t.Seats = append(t.Seats[:at], append([]*TableSeat{seat}, t.Seats[at:]...)...)
 	t.Seen(userID, now)
 	if t.Phase == "waiting" {
 		t.Phase = "betting"
@@ -329,7 +362,7 @@ func (t *Table) View(userID string, now int64) TableView {
 	}
 	v.CanBet = userID != "" && !v.Seated && v.Free > 0 && (t.Phase == "waiting" || t.Phase == "betting")
 	for i, s := range t.Seats {
-		sv := TableSeatView{Name: s.Name, Cards: s.Cards, Total: bjTotal(s.Cards), Bet: s.Bet, Result: s.Result, You: s.UserID == userID, Turn: t.Phase == "playing" && i == t.Turn}
+		sv := TableSeatView{Pos: s.Pos, Name: s.Name, Cards: s.Cards, Total: bjTotal(s.Cards), Bet: s.Bet, Result: s.Result, You: s.UserID == userID, Turn: t.Phase == "playing" && i == t.Turn}
 		if done {
 			p := s.Payout
 			sv.Payout = &p

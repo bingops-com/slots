@@ -176,7 +176,8 @@ func (s *Server) tableBet(w http.ResponseWriter, r *http.Request) (any, error) {
 		return nil, httpError{http.StatusTooManyRequests, "Trop de manches à la fois, ralentissez"}
 	}
 	var body struct {
-		Bet int64 `json:"bet"`
+		Bet  int64 `json:"bet"`
+		Seat *int  `json:"seat"` // the place asked for; any free one when absent
 	}
 	if err := readJSON(r, &body); err != nil {
 		return nil, err
@@ -185,7 +186,13 @@ func (s *Server) tableBet(w http.ResponseWriter, r *http.Request) (any, error) {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 	rm.tick(r.Context())
-	if err := rm.table.CanBet(u.ID, body.Bet); err != nil {
+	pos := -1
+	if body.Seat != nil {
+		if pos = *body.Seat; pos < 0 {
+			return nil, engine.Error("Cette place est prise")
+		}
+	}
+	if err := rm.table.CanBet(u.ID, body.Bet, pos); err != nil {
 		return nil, err
 	}
 	var fromStake int64
@@ -196,7 +203,7 @@ func (s *Server) tableBet(w http.ResponseWriter, r *http.Request) (any, error) {
 	}); err != nil {
 		return nil, err
 	}
-	rm.table.Bet(u.ID, u.Name, body.Bet, fromStake, nowMs())
+	rm.table.Bet(u.ID, u.Name, body.Bet, fromStake, pos, nowMs())
 	rm.moved()
 	return rm.answer(r.Context(), u)
 }

@@ -1,14 +1,16 @@
-import { $, $$, el, sleep } from '../lib/dom.js';
+import { $, $$, el, sleep, store } from '../lib/dom.js';
 import { App } from '../lib/app';
 import { Sound } from '../lib/sound.js';
 import { createFx } from '../lib/fx.js';
 
 // La table de blackjack à plusieurs : cinq places, une donne commune, chacun joue sa main
-// à son tour contre le même croupier. La donne part dès que tous les joueurs présents ont
+// à son tour contre le même croupier, de la première place à la dernière. On choisit sa
+// place en la touchant sur le tapis. La donne part dès que tous les joueurs présents ont
 // misé, et personne n'attend plus de cinq secondes. Tout se passe sur le serveur : l'écran
 // lui demande ce qui a changé, et la réponse arrive au moment où quelque chose se passe.
 const pic = (name) => `<img class="pic" src="/art/tables/${name}.webp" alt="" draggable="false">`;
 const LABEL = { win: 'gagné', lose: 'perdu', push: 'égalité', blackjack: 'blackjack' };
+const PLACES = 5;
 const secs = (ms) => Math.max(1, Math.ceil(ms / 1000));
 // Le rythme du tirage : entre deux cartes de la donne, le trajet d'une carte depuis la main
 // du croupier, la carte cachée qui se retourne, puis chaque carte que le croupier se sert.
@@ -48,7 +50,7 @@ const game = {
           <button class="btn quiet" data-act="stand">Rester</button>
           <button class="btn quiet" data-act="double">Doubler</button>
         </div>
-        <p class="hint">Cinq places. La donne part dès que tous les joueurs présents ont misé, cinq secondes au plus après la première mise. Cinq secondes pour jouer, sinon la main reste. Blackjack payé 3 pour 2, le croupier reste à 17.</p>
+        <p class="hint">Cinq places : touchez celle où vous voulez miser. La donne part dès que tous les joueurs présents ont misé, cinq secondes au plus après la première mise. Cinq secondes pour jouer, sinon la main reste. Blackjack payé 3 pour 2, le croupier reste à 17.</p>
       </div>
       <div class="stage bj-stage tb-stage">
         <div class="scene" aria-hidden="true"><i class="scenery" style="background-image:url(/art/tables/blackjack-stage.webp)"></i></div>
@@ -146,10 +148,16 @@ const game = {
       shown.round = t.round;
 
       // Les places : celles qui existent restent en place, les nouvelles s'ajoutent.
-      const layout = `${t.seats.map((s) => s.name).join('\n')}\n${t.free}`;
+      // Une place libre se prend en la touchant, tant que les mises sont ouvertes.
+      const places = Array.from({ length: PLACES }, (_, i) => t.seats.find((s) => s.pos === i));
+      const layout = `${places.map((s) => (s ? s.name : '')).join('\n')}\n${t.canBet}`;
       if (layout !== shown.layout) {
         const seats = new Map(t.seats.map((s) => [s.name, shown.seats.get(s.name) || seatNode(s.name)]));
-        seatsEl.replaceChildren(...[...seats.values()].map((v) => v.node), ...Array.from({ length: t.free }, () => el('<div class="tb-seat free"><div class="tb-name">Place libre</div></div>')));
+        seatsEl.replaceChildren(
+          ...places.map((s, i) =>
+            s ? seats.get(s.name).node : el(t.canBet ? `<button type="button" class="tb-seat free" data-pos="${i}"><span class="tb-name">Miser ici</span></button>` : '<div class="tb-seat free"><div class="tb-name">Place libre</div></div>'),
+          ),
+        );
         shown.seats = seats;
         shown.layout = layout;
       }
@@ -310,7 +318,21 @@ const game = {
       }
     }
 
-    play.onclick = () => call('/api/table/bet', { bet: bet.value });
+    // Le bouton reprend la place choisie la dernière fois, si elle est libre ; sinon la
+    // première libre.
+    const sit = (seat) => {
+      if (seat !== undefined) store.set('table.seat', String(seat));
+      return call('/api/table/bet', { bet: bet.value, seat });
+    };
+    play.onclick = () => {
+      const last = store.get('table.seat');
+      const free = last !== null && state && !state.seats.some((s) => s.pos === Number(last));
+      return sit(free ? Number(last) : undefined);
+    };
+    seatsEl.onclick = (e) => {
+      const b = e.target.closest('button[data-pos]');
+      if (b) sit(Number(b.dataset.pos));
+    };
     $$('[data-act]', root).forEach((b) => {
       b.disabled = true;
       b.onclick = () => call('/api/table/action', { action: b.dataset.act });

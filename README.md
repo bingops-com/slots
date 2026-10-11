@@ -70,7 +70,7 @@ tout le monde et vide les tableaux ; les parties en cours sont abandonnées.
 | Blackjack | Sabot infini, croupier qui s'arrête à 17, doubler, séparer une fois, blackjack payé 3 pour 2. |
 | Roulette | Européenne, un seul zéro. |
 | Dés | Le joueur fixe le seuil ; 1 % d'avantage pour la maison. |
-| Blackjack à plusieurs | Une table de cinq places, en classé seulement. La table attend une première mise et distribue dès que tous les joueurs présents ont misé, cinq secondes plus tard au plus ; chacun joue ensuite à son tour (cinq secondes, sinon la main reste), et le résultat reste cinq secondes sur le tapis. Mêmes règles que le blackjack en solo, sans la séparation. |
+| Blackjack à plusieurs | Une table de cinq places, en classé seulement. Chacun choisit sa place en la touchant sur le tapis ; les mains se jouent de la première place à la dernière. La table attend une première mise et distribue dès que tous les joueurs présents ont misé, cinq secondes plus tard au plus ; chacun joue ensuite à son tour (cinq secondes, sinon la main reste), et le résultat reste cinq secondes sur le tapis. Mêmes règles que le blackjack en solo, sans la séparation. |
 | Mines | 25 cases, 1 à 24 mines ; 1 % d'avantage pour la maison. |
 | Texas hold'em | Une table de six places, sans limite, en classé seulement. On s'assoit avec une cave de 40 à 200 grosses blindes prise sur ses crédits, on repart avec ce qu'il reste. Des personnages de la maison, chacun avec son tempérament, complètent la table ; la maison ne prélève rien. |
 | Plinko | Une perle tombe entre 8, 12 ou 16 rangées de plots vers une case à multiplicateur ; trois niveaux de risque. Chaque table rend environ 99 % des mises. |
