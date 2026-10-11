@@ -122,7 +122,9 @@ bets have brought in).
 
 The home page opens on one poster (the key art of a machine, darkened on the
 side that carries the headline), states the rule of the place in three short
-sentences, then shows the games by family as posters, and ends on the head of
+sentences, then shows the games by family as posters (each one a scene with the game's character or
+object in action, never an empty backdrop: `art/<game>/reference.webp`,
+`art/tables/reference/<game>.webp`), and ends on the head of
 the race. The leaderboard has its own page. On a phone the navigation folds
 behind a three-line button. On a computer a machine fits the screen without
 scrolling: when height is short, margins, subtitle and character shrink before

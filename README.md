@@ -189,7 +189,7 @@ hors ligne on s'entraîne, et le libellé du solde le dit (« À miser » ou
 (logo, solde, menu) ; le compte, la langue, le son et la navigation sont dans le
 menu, et la scène vient juste dessous, suivie des réglages puis de « Remettre à
 10 000 » (ou « Demander une avance ») et du plein écran. L'accueil occupe toute
-la largeur de l'écran. Dans la navigation, chaque famille de jeux se replie sous
+la largeur de l'écran. Chaque jeu y a son affiche : une scène où son personnage ou son objet est en action (le duel de Mort ou Vif, la pieuvre qui distribue, le crabe qui lance les dés), préparée par `art/build.py`. Dans la navigation, chaque famille de jeux se replie sous
 son titre, et le choix est retenu.
 
 Sur la scène de chaque machine, une carte présente ses tours gratuits : le

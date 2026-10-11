@@ -86,18 +86,13 @@ def brand() -> None:
 
 
 def covers() -> None:
-    """Les affiches de la page d'accueil : l'image d'ensemble de chaque machine, le décor
-    de chaque table."""
+    """Les affiches de la page d'accueil : une scène par jeu, avec son personnage ou son
+    objet en pleine action (reference.webp d'une machine, tables/reference pour une table)."""
     dest = OUT / "home"
     dest.mkdir(parents=True, exist_ok=True)
-    sources = {
-        "beard": ROOT / "beard" / "reference.webp", "bass": ROOT / "bass" / "reference.webp", "bounty": ROOT / "bounty" / "src" / "stage.png",
-        "blackjack": ROOT / "tables" / "src" / "blackjack-stage.png", "roulette": ROOT / "tables" / "src" / "roulette-stage.png",
-        "dice": ROOT / "tables" / "src" / "dice-stage.png", "mines": ROOT / "tables" / "src" / "mines-stage.png",
-        "crash": ROOT / "tables" / "src" / "crash-stage.png", "plinko": ROOT / "tables" / "src" / "plinko-stage.png",
-        "holdem": ROOT / "tables" / "src" / "poker-stage.png",
-        "neptune": ROOT / "neptune" / "src" / "stage.png", "reef": ROOT / "reef" / "src" / "stage.png", "dogs": ROOT / "dogs" / "src" / "stage.png",
-    }
+    tables = ROOT / "tables" / "reference"
+    sources = {name: ROOT / name / "reference.webp" for name in ["beard", "bass", "bounty", "neptune", "reef", "dogs"]}
+    sources |= {name: tables / f"{name}.webp" for name in ["blackjack", "roulette", "dice", "mines", "crash", "plinko", "holdem"]}
     for name, src in sources.items():
         if not src.exists():
             continue

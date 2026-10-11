@@ -60,7 +60,7 @@ export default function Landing() {
         <div><b>3</b><h3>Sans compte, on s&apos;entraîne</h3><p>Tous les jeux en solo se jouent aussi hors classement, sur votre appareil, même hors ligne.</p></div>
       </section>
 
-      <Shelf title="Machines à sous" note="Trois machines, chacune avec son univers, ses tours gratuits et ses bonus." kind="slot" />
+      <Shelf title="Machines à sous" note="Six machines, chacune avec son univers, ses tours gratuits et ses bonus." kind="slot" />
       <Shelf title="Jeux de table" note="En solo, contre la maison : une manche prend quelques secondes." kind="table" />
       <Shelf title="En ligne, à plusieurs" note="Une table commune, en classé : on s'y assoit avec un compte." kind="online" />
 
