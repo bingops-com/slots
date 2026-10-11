@@ -207,6 +207,8 @@ func TestSharedTable(t *testing.T) {
 	if code, _ := (&client{t: t, http: http.DefaultClient, base: a.base}).do("POST", "/api/table/bet", `{"bet":100}`); code != 401 {
 		t.Fatalf("bet without an account: %d", code)
 	}
+	// Basile is looking at the table: the deal waits for his bet.
+	b.do("GET", "/api/table", "")
 	code, out := a.do("POST", "/api/table/bet", `{"bet":1000}`)
 	if code != 200 || out["table"].(map[string]any)["phase"] != "betting" || out["user"].(map[string]any)["balance"].(float64) != 999_000 {
 		t.Fatalf("first bet: %d %v", code, out)

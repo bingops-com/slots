@@ -44,7 +44,7 @@ const game = {
     let dealt = 0;
     const card = (c, fresh, flip) => {
       const cls = `pcard ${c && '♥♦'.includes(c.s) ? 'red' : ''} ${c ? '' : 'back'} ${fresh ? 'new' : ''} ${flip ? 'flip' : ''}`;
-      const style = fresh ? ` style="animation-delay:${dealt++ * 90}ms"` : '';
+      const style = fresh ? ` style="--d:${dealt++ * 110}ms"` : '';
       return c ? `<div class="${cls}"${style}><b>${c.r}</b><span>${c.s}</span></div>` : `<div class="${cls}"${style}></div>`;
     };
     const LABEL = { win: 'Gagné', lose: 'Perdu', push: 'Égalité', blackjack: 'Blackjack !' };

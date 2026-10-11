@@ -117,12 +117,12 @@ const DICT: Record<string, string> = {
   'Gain potentiel': 'Potential win', "La barre d'espace lance aussi les dés.": 'The space bar also rolls the dice.', 'Au-dessus de': 'Over', 'En dessous de': 'Under', 'Chance de gain': 'Win chance',
   // ----- blackjack -----
   Tirer: 'Hit', Rester: 'Stand', Doubler: 'Double', Séparer: 'Split', Distribuer: 'Deal', Croupier: 'Dealer', Vous: 'You',
-  'Blackjack payé 3 pour 2, le croupier reste à 17': 'Blackjack pays 3 to 2, dealer stands on 17', 'À vous de jouer': 'Your move', 'Égalité, mise rendue': 'Push, bet returned', Perdu: 'Lost',
+  'Blackjack payé 3 pour 2, le croupier reste à 17': 'Blackjack pays 3 to 2, dealer stands on 17', 'À vous de jouer': 'Your move', 'Au croupier de jouer': "Dealer's turn", 'Égalité, mise rendue': 'Push, bet returned', Perdu: 'Lost',
   // ----- blackjack à plusieurs -----
   Miser: 'Bet', 'Mise posée': 'Bet placed', 'Donne en cours': 'Deal in progress', 'Table complète': 'Table full', 'Place libre': 'Free seat', 'Donne terminée': 'Deal over',
   "En attente qu'un joueur mise": 'Waiting for a player to bet', 'Connexion à la table…': 'Connecting to the table…', 'Table injoignable, nouvel essai…': 'Table unreachable, retrying…',
-  'Cinq places. La donne part douze secondes après la première mise. Vingt secondes pour jouer, sinon la main reste. Blackjack payé 3 pour 2, le croupier reste à 17.':
-    'Five seats. The deal starts twelve seconds after the first bet. Twenty seconds to act, otherwise the hand stands. Blackjack pays 3 to 2, dealer stands on 17.',
+  'Cinq places. La donne part dès que tous les joueurs présents ont misé, cinq secondes au plus après la première mise. Cinq secondes pour jouer, sinon la main reste. Blackjack payé 3 pour 2, le croupier reste à 17.':
+    'Five seats. The deal starts as soon as every player present has bet, five seconds at most after the first bet. Five seconds to act, otherwise the hand stands. Blackjack pays 3 to 2, dealer stands on 17.',
   "La table à plusieurs se joue en classé, avec un compte. À l'entraînement, le": 'The shared table is played ranked, with an account. In practice,', 'blackjack en solo': 'solo blackjack', 'reste ouvert.': 'stays open.',
   'Créez un compte pour vous asseoir à la table': 'Create an account to sit at the table',
   // ----- roulette -----
