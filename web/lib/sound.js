@@ -187,7 +187,7 @@ export const Sound = (() => {
     // Un poisson ramassé : la note monte à chaque prise.
     plop(d, t, n = 0) {
       tone(d, t, { f: 700, to: 260, dur: 0.09, gain: 0.16 });
-      pluck(d, t + 0.02, MAJOR[Math.min(n, MAJOR.length - 1)], 0.12);
+      pluck(d, t + 0.02, MAJOR[Math.max(0, Math.min(Math.round(n), MAJOR.length - 1))], 0.12);
     },
     splash(d, t, power = 0) {
       hiss(d, t, { type: 'bandpass', f: 1800, to: 500, q: 0.7, dur: 0.35, gain: 0.16 + 0.1 * power });
@@ -422,7 +422,13 @@ export const Sound = (() => {
       return on;
     },
     play(name, ...args) {
-      if (on && live()) fx[name](master, ctx.currentTime + 0.005, ...args);
+      if (!on || !live()) return;
+      // Un son raté ne doit jamais interrompre la partie qui le demande.
+      try {
+        fx[name](master, ctx.currentTime + 0.005, ...args);
+      } catch (e) {
+        console.warn('son', name, e);
+      }
     },
     reels: () => (on && live() ? reels() : silent),
     coins: () => (on && live() ? coins() : silent),

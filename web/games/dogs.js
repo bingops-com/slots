@@ -1,4 +1,4 @@
-import { $, $$, el } from '../lib/dom.js';
+import { $, $$, el, store } from '../lib/dom.js';
 import { App } from '../lib/app';
 import { Reels, centre, countUp, stageBanner, bigWin, slotLayout } from '../lib/slotkit.js';
 import { Sound } from '../lib/sound.js';
@@ -21,6 +21,11 @@ const SYM = {
 };
 const NAMES = ['T', 'J', 'Q', 'K', 'A', 'BONE', 'COLLAR', 'DOG1', 'DOG2', 'DOG3', 'DOG4'];
 const BUY = 100;
+// Les deux bonus, au choix du joueur : ce que les trois scatters ouvrent, et ce qu'on achète.
+const BONUS = {
+  sticky: { name: 'Niches en place', buy: 'fs', count: 'Niches en place' },
+  rain: { name: 'Pluie de niches', buy: 'rain', count: 'Niches tombées' },
+};
 const times = (m) => `×${m.toLocaleString('fr-FR')}`;
 
 const table = `
@@ -33,21 +38,26 @@ const table = `
 const rules = `
   <p>5 rouleaux, 3 rangées, 20 lignes payées de gauche à droite. Gains en multiples de la mise pour 3 / 4 / 5 symboles :</p>${table}
   <p>${img('wild')} <b>Niche wild</b> : sur les rouleaux 2, 3 et 4 seulement. Elle remplace les symboles payants et porte un multiplicateur ×2 ou ×3 ; plusieurs niches sur une même ligne s'additionnent.</p>
-  <p>${img('scatter')} <b>Bonus</b> : sur les rouleaux 1, 3 et 5. Les trois ensemble paient 5 fois la mise et ouvrent les tours gratuits : neuf tonneaux donnent chacun 1, 2 ou 3 tours, soit 9 à 27 au total.</p>
-  <p>En tours gratuits, chaque niche qui tombe reste en place avec son multiplicateur jusqu'à la fin. Les tours gratuits ne se redéclenchent pas.</p>
-  <p><b>Achat</b> : déclenche directement les tours gratuits pour 100 fois la mise.</p>
+  <p>${img('scatter')} <b>Bonus</b> : sur les rouleaux 1, 3 et 5. Les trois ensemble paient 5 fois la mise et ouvrent les tours gratuits : neuf tonneaux donnent chacun 1, 2 ou 3 tours, soit 9 à 27 au total. Vous choisissez d'avance, sur la scène, lequel des deux bonus ils ouvrent :</p>
+  <p><b>Niches en place</b> : chaque niche qui tombe reste en place avec son multiplicateur jusqu'à la fin. Les gains montent avec le nombre de niches : c'est le bonus le plus irrégulier.</p>
+  <p><b>Pluie de niches</b> : à chaque tour, 1 à 4 niches tombent sur les rouleaux 2, 3 et 4, puis repartent avec le tour. Les gains sont plus réguliers.</p>
+  <p>Les deux bonus rapportent autant en moyenne. Les tours gratuits ne se redéclenchent pas.</p>
+  <p><b>Achat</b> : déclenche directement le bonus choisi pour 100 fois la mise.</p>
   <p>Gain maximal : 6 750 fois la mise. Les règles et la table des gains sont celles de The Dog House ; ses rouleaux n'étant pas publics, le tracé des lignes est le plus courant et les fréquences sont réglées par simulation sur ses chiffres connus (retour de 96,51 %, un gain sur 27,5 % des tours, tours gratuits tous les 180 tours).</p>`;
 const rulesEn = `
   <p>5 reels, 3 rows, 20 lines paid left to right. Wins in multiples of the bet for 3 / 4 / 5 symbols:</p>${table.replace(/(\d),(\d)/g, '$1.$2')}
   <p>${img('wild')} <b>Kennel wild</b>: on reels 2, 3 and 4 only. It substitutes for paying symbols and carries a ×2 or ×3 multiplier; several kennels on the same line add up.</p>
-  <p>${img('scatter')} <b>Bonus</b>: on reels 1, 3 and 5. All three together pay 5 times the bet and open the free spins: nine barrels each give 1, 2 or 3 spins, 9 to 27 in total.</p>
-  <p>In free spins, every kennel that lands stays in place with its multiplier until the end. Free spins do not retrigger.</p>
-  <p><b>Buy</b>: triggers the free spins directly for 100 times the bet.</p>
+  <p>${img('scatter')} <b>Bonus</b>: on reels 1, 3 and 5. All three together pay 5 times the bet and open the free spins: nine barrels each give 1, 2 or 3 spins, 9 to 27 in total. You choose beforehand, on the stage, which of the two bonuses they open:</p>
+  <p><b>Kennels in place</b>: every kennel that lands stays in place with its multiplier until the end. Wins grow with the number of kennels: this is the more uneven bonus.</p>
+  <p><b>Raining kennels</b>: on every spin, 1 to 4 kennels drop on reels 2, 3 and 4, then leave with the spin. Wins are more even.</p>
+  <p>Both bonuses return as much on average. Free spins do not retrigger.</p>
+  <p><b>Buy</b>: triggers the chosen bonus directly for 100 times the bet.</p>
   <p>Maximum win: 6,750 times the bet. The rules and the paytable are those of The Dog House; its reels are not public, so the layout of the lines is the usual one and the frequencies are tuned by simulation on its known figures (return of 96.51%, a win on 27.5% of spins, free spins every 180 spins).</p>`;
 
 const game = {
   mount(root) {
-    const ui = slotLayout(root, { title: 'Chiens de <span>bord</span>', subtitle: 'Vingt lignes, des niches wild qui multiplient et restent en place en tours gratuits, jusqu\'à 6 750 fois la mise.', rules: language() === 'en' ? rulesEn : rules });
+    const ui = slotLayout(root, { title: 'Chiens de <span>bord</span>', subtitle: 'Vingt lignes, des niches wild qui multiplient et restent en place en tours gratuits, jusqu\'à 6 750 fois la mise.', rules: language() === 'en' ? rulesEn : rules,
+      feature: { art: '/art/dogs/scatter.webp', title: 'Deux bonus au choix', text: '3 bonus sur les rouleaux 1, 3 et 5 ouvrent 9 à 27 tours gratuits. À vous de choisir lesquels.' } });
     let bet = ui.bet.value;
     let busy = false;
     let gone = false;
@@ -58,12 +68,27 @@ const game = {
     const fx = createFx(ui.stage);
     Sound.ambience('sea');
 
-    ui.extra.innerHTML = '<p class="buy-title">Acheter les tours gratuits</p><button class="btn quiet buy"></button>';
+    // Le bonus choisi vaut pour les scatters comme pour l'achat ; il est retenu.
+    let mode = store.get('dogs.bonus') === 'rain' ? 'rain' : 'sticky';
+    ui.extra.innerHTML = `
+      <div class="pick" role="radiogroup" aria-label="Bonus ouvert par les trois scatters">
+        ${Object.entries(BONUS).map(([k, b]) => `<button type="button" role="radio" data-mode="${k}">${b.name}</button>`).join('')}
+      </div>
+      <button class="btn quiet buy"></button>`;
     const buyBtn = $('.buy', ui.extra);
+    const picks = $$('[data-mode]', ui.extra);
     const labels = () => {
       buyBtn.classList.remove('armed');
-      buyBtn.innerHTML = `9 à 27 tours gratuits<small>${App.coin(ui.bet.value * BUY)}</small>`;
+      buyBtn.innerHTML = `Acheter ce bonus<small>${App.coin(ui.bet.value * BUY)}</small>`;
+      picks.forEach((x) => x.setAttribute('aria-checked', x.dataset.mode === mode));
     };
+    picks.forEach((x) => (x.onclick = () => {
+      if (busy) return;
+      mode = x.dataset.mode;
+      store.set('dogs.bonus', mode);
+      sfx('arm');
+      labels();
+    }));
     labels();
     ui.controls.addEventListener('change', labels);
     ui.controls.addEventListener('click', labels);
@@ -78,9 +103,9 @@ const game = {
     // Les niches tenues en place pendant les tours gratuits, posées par-dessus les rouleaux.
     const pinned = el('<div class="pinned rows3" aria-hidden="true"></div>');
     ui.frame.append(pinned);
-    const pin = (c, r, v) => {
+    const pin = (c, r, v, cls = '') => {
       if ($(`[data-at="${c}-${r}"]`, pinned)) return false;
-      pinned.append(el(`<div class="pin" data-at="${c}-${r}" style="left:${c * 20}%;top:${(r * 100) / 3}%"><div class="sym wild"><span>${img('wild')}</span><em>${times(v)}</em></div></div>`));
+      pinned.append(el(`<div class="pin ${cls}" data-at="${c}-${r}" style="left:${c * 20}%;top:${(r * 100) / 3}%"><div class="sym wild"><span>${img('wild')}</span><em>${times(v)}</em></div></div>`));
       return true;
     };
 
@@ -95,11 +120,15 @@ const game = {
       return svg;
     }
 
+    // free : 'sticky' ou 'rain' pendant un bonus, sinon rien.
     async function playSpin(s, free) {
-      if (!free) pinned.replaceChildren();
+      const rain = free === 'rain';
+      if (!free || rain) pinned.replaceChildren();
       const quiet = Sound.reels();
       let bells = 0;
-      await reels.spin(s.grid, {
+      // Sous la pluie, les rouleaux s'arrêtent sans niche : elles tombent ensuite.
+      const shown = rain ? s.grid.map((col) => col.map((x) => (x.s === 'WILD' ? { s: NAMES[Math.floor(Math.random() * NAMES.length)] } : x))) : s.grid;
+      await reels.spin(shown, {
         onStop: (c) => {
           sfx('stop', c);
           s.grid[c].forEach((x, r) => {
@@ -114,16 +143,30 @@ const game = {
         },
       });
       quiet();
-      if (free) {
+      if (rain) {
+        const count = $('#pin-count', ui.stage);
+        for (const [c, r] of s.rain) {
+          pin(c, r, s.grid[c][r].v, 'drop');
+          sfx('wild');
+          if (count) count.textContent = pinned.children.length;
+          await App.wait(140);
+        }
+        await App.wait(260);
+      } else if (free) {
         let fresh = 0;
         s.grid.forEach((col, c) => col.forEach((x, r) => x.s === 'WILD' && pin(c, r, x.v) && fresh++));
         if (fresh) {
           sfx('wild');
+          // Le compteur suit tout de suite la niche qui vient de se poser.
+          const count = $('#pin-count', ui.stage);
+          if (count) count.textContent = pinned.children.length;
           await App.wait(300);
         }
       }
       if (!s.wins.length) return;
       for (const w of s.wins) reels.mark(LINES[w.line].slice(0, w.count).map((r, c) => [c, r]));
+      // Une niche tenue en place recouvre sa case : c'est elle qu'on marque quand elle gagne.
+      for (const w of s.wins) LINES[w.line].slice(0, w.count).forEach((r, c) => $(`[data-at="${c}-${r}"]`, pinned)?.classList.add('win'));
       const svg = drawLines(s.wins);
       const best = Math.max(...s.wins.map((w) => w.mult));
       sfx('line', Math.min(8, Math.round(Math.log2(1 + s.win * 2))));
@@ -132,6 +175,7 @@ const game = {
       await App.wait(1000);
       svg.remove();
       reels.clear();
+      $$('.win', pinned).forEach((x) => x.classList.remove('win'));
     }
 
     // Les neuf tonneaux : chacun s'ouvre sur 1, 2 ou 3 tours.
@@ -154,12 +198,12 @@ const game = {
         cells[i].className = `open n${b.barrels[i]}`;
         sum += b.barrels[i];
         $('#barrel-sum', node).textContent = sum;
-        sfx('plop', 2 + sum / 3);
+        sfx('plop', Math.round(2 + sum / 3));
         await App.wait(230);
       }
       sfx('wheel', Math.min(2, Math.floor((total - 9) / 6)));
       fx.blast($('#barrel-sum', node), 0.4 + (total - 9) / 30, 1.2);
-      $('p', node).textContent = `${total} tours gratuits`;
+      $('p', node).innerHTML = `${total} tours gratuits<small>${BONUS[b.mode].name}</small>`;
       await App.wait(1400);
       node.remove();
     }
@@ -170,10 +214,11 @@ const game = {
       ui.stage.classList.add('bonus');
       if (!gone) Sound.ambience('hornpipe');
       let total = 0;
+      const kind = res.bonus.mode;
       for (const s of res.bonus.spins) {
         ui.winline.innerHTML = '&nbsp;';
-        ui.hud.innerHTML = `<span>Tours restants <b>${s.left}</b></span><span>Niches en place <b>${pinned.children.length}</b></span><span>Gain des tours gratuits <b><span class="coin">◈</span><span id="bonus-total">${App.fmt(Math.round(total * bet))}</span></b></span>`;
-        await playSpin(s, true);
+        ui.hud.innerHTML = `<span>Tours restants <b>${s.left}</b></span><span>${BONUS[kind].count} <b id="pin-count">${kind === 'rain' ? 0 : pinned.children.length}</b></span><span>Gain des tours gratuits <b><span class="coin">◈</span><span id="bonus-total" data-value="${Math.round(total * bet)}">${App.fmt(Math.round(total * bet))}</span></b></span>`;
+        await playSpin(s, kind);
         total += s.win;
         await countUp($('#bonus-total', ui.stage), Math.round(total * bet), 400);
         await App.wait(150);
@@ -198,12 +243,13 @@ const game = {
       busy = true;
       ui.play.disabled = true;
       buyBtn.disabled = true;
+      picks.forEach((x) => (x.disabled = true));
       ui.bet.lock(true);
       ui.winline.innerHTML = '&nbsp;';
       ui.tally.reset();
       sfx('lever');
       try {
-        const pending = App.api('/api/slots/dogs', buy ? { bet, buy: 'fs' } : { bet });
+        const pending = App.api('/api/slots/dogs', buy ? { bet, buy: BONUS[mode].buy } : { bet, mode });
         App.showBalance(App.user.balance - cost);
         const res = await pending;
         await playSpin(res, false);
@@ -235,6 +281,7 @@ const game = {
       busy = false;
       ui.play.disabled = false;
       buyBtn.disabled = false;
+      picks.forEach((x) => (x.disabled = false));
       ui.bet.lock(false);
       labels();
       return played && !gone;

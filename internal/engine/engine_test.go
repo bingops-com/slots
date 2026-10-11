@@ -26,7 +26,7 @@ func TestWalletInvariants(t *testing.T) {
 		"slots/bounty":     {`{"bet":100}`, `{"bet":10,"buy":"GALLEON"}`, `{"bet":10,"buy":"DUEL"}`, `{"bet":10,"buy":"DEAD"}`},
 		"slots/neptune":    {`{"bet":100}`, `{"bet":100,"ante":true}`, `{"bet":10,"buy":"fs"}`},
 		"slots/reef":       {`{"bet":100}`, `{"bet":100,"ante":true}`, `{"bet":10,"buy":"fs"}`},
-		"slots/dogs":       {`{"bet":100}`, `{"bet":10,"buy":"fs"}`},
+		"slots/dogs":       {`{"bet":100}`, `{"bet":100,"mode":"rain"}`, `{"bet":10,"buy":"fs"}`, `{"bet":10,"buy":"rain"}`},
 		"blackjack/start":  {`{"bet":100}`},
 		"blackjack/action": {`{"action":"hit"}`, `{"action":"stand"}`, `{"action":"double"}`, `{"action":"split"}`},
 		"mines/start":      {`{"bet":100,"mines":3}`},
@@ -92,6 +92,7 @@ func TestRejectsBadInput(t *testing.T) {
 		{"slots/beard", `{"bet":100,"buy":"everything"}`},
 		{"slots/bass", `{"bet":100,"buy":"fsr"}`},
 		{"slots/dogs", `{"bet":100,"buy":"everything"}`},
+		{"slots/dogs", `{"bet":100,"mode":"everything"}`},
 		{"slots/beard", `{"bet":500000,"buy":"fsr"}`},
 		{"roulette", `{"bets":[]}`},
 		{"roulette", `{"bets":[{"type":"straight","value":37,"amount":100}]}`},
@@ -118,8 +119,8 @@ func TestRejectsBadInput(t *testing.T) {
 }
 
 func TestDogsBoughtBonus(t *testing.T) {
-	res := DogsPlay(seeded(7), true)
-	if !res.Bought || res.Bonus == nil || res.Scatters != 3 || res.ScatterPay != 0 || len(res.Wins) != 0 {
+	res := DogsPlay(seeded(7), true, DogsSticky)
+	if !res.Bought || res.Bonus == nil || res.Bonus.Mode != DogsSticky || res.Scatters != 3 || res.ScatterPay != 0 || len(res.Wins) != 0 {
 		t.Fatalf("invalid bought bonus: %+v", res)
 	}
 	if len(res.Bonus.Barrels) != 9 || res.Awarded != len(res.Bonus.Spins) || res.Awarded < 9 || res.Awarded > 27 {
@@ -134,6 +135,39 @@ func TestDogsBoughtBonus(t *testing.T) {
 		}
 		if found != 1 {
 			t.Fatalf("reel %d has %d scatters", c+1, found)
+		}
+	}
+}
+
+// Raining wilds drop on the middle reels only, never stay, and are the only
+// wilds of their spin.
+func TestDogsRainBonus(t *testing.T) {
+	rng := seeded(11)
+	for range 200 {
+		res := DogsPlay(rng, true, DogsRain)
+		if res.Bonus == nil || res.Bonus.Mode != DogsRain || res.Awarded < 9 || res.Awarded > 27 {
+			t.Fatalf("invalid rain bonus: %+v", res.Bonus)
+		}
+		for _, s := range res.Bonus.Spins {
+			wilds := 0
+			for c, col := range s.Grid {
+				for _, x := range col {
+					if x.S == "WILD" {
+						wilds++
+						if c < 1 || c > 3 || (x.V != 2 && x.V != 3) {
+							t.Fatalf("wild on reel %d with multiplier %v", c+1, x.V)
+						}
+					}
+				}
+			}
+			if wilds != len(s.Rain) || len(s.Held) != 0 {
+				t.Fatalf("%d wilds on the grid, %d rained, %d held", wilds, len(s.Rain), len(s.Held))
+			}
+			for _, at := range s.Rain {
+				if s.Grid[at[0]][at[1]].S != "WILD" {
+					t.Fatalf("no wild where one rained: %v", at)
+				}
+			}
 		}
 	}
 }

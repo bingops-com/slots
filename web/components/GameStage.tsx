@@ -36,7 +36,7 @@ function useImmersive() {
 }
 
 export default function GameStage({ id }: { id: string }) {
-  const { ready, practice, account, offline, epoch } = useApp();
+  const { ready, practice, account, offline, epoch, user } = useApp();
   const root = useRef<HTMLElement>(null);
   const [failed, setFailed] = useState('');
   const [immersive, toggleImmersive] = useImmersive();
@@ -74,9 +74,14 @@ export default function GameStage({ id }: { id: string }) {
         ) : (
           <p className="notice">Partie classée : chaque manche compte pour la saison.</p>
         )}
-        <button className="btn quiet small" aria-pressed={immersive} onClick={toggleImmersive}>
-          {immersive ? 'Quitter le plein écran' : 'Plein écran'}
-        </button>
+        {/* Ce qui remet des crédits en jeu reste à portée de main, près de la mise. */}
+        <div className="game-actions">
+          {user && practice && <button className="btn quiet small" onClick={() => App.resetPractice()}>Remettre à 10 000</button>}
+          {user && !practice && user.canAdvance && <button className="btn quiet small" onClick={() => App.advance()}>Demander une avance</button>}
+          <button className="btn quiet small" aria-pressed={immersive} onClick={toggleImmersive}>
+            {immersive ? 'Quitter le plein écran' : 'Plein écran'}
+          </button>
+        </div>
       </div>
       {failed && <p className="notice">Le jeu n&apos;a pas pu démarrer : {failed}</p>}
       <div className="table">

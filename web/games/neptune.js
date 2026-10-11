@@ -14,4 +14,5 @@ export default makeTumble({
   like: 'Gates of Olympus',
   rtp: '96,5 %',
   music: 'temple',
+  feature: { title: 'La faveur de Neptune', text: '4 scatters ou plus : 15 tours gratuits, où les orbes s\'additionnent d\'un tour à l\'autre.' },
 });

@@ -206,10 +206,19 @@ func sim(args []string) {
 			}
 			return r.TotalMult, nil
 		}, engine.DogsMaxWin)
-		run("dogs, achat", n/40+1, engine.DogsBuyCost, func() (float64, *float64) {
-			r := engine.DogsPlay(rng, true)
-			return r.TotalMult, &r.Bonus.Total
+		run("dogs, pluie de niches", n, 1, func() (float64, *float64) {
+			r := engine.DogsPlay(rng, false, engine.DogsRain)
+			if r.Bonus != nil {
+				return r.TotalMult, &r.Bonus.Total
+			}
+			return r.TotalMult, nil
 		}, engine.DogsMaxWin)
+		for _, mode := range []string{engine.DogsSticky, engine.DogsRain} {
+			run("dogs, achat "+mode, n/40+1, engine.DogsBuyCost, func() (float64, *float64) {
+				r := engine.DogsPlay(rng, true, mode)
+				return r.TotalMult, &r.Bonus.Total
+			}, engine.DogsMaxWin)
+		}
 	}
 	if only == "" || only == "bounty" {
 		for _, c := range []struct {

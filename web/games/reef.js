@@ -14,4 +14,5 @@ export default makeTumble({
   like: 'Sweet Bonanza',
   rtp: '96,5 %',
   music: 'lagoon',
+  feature: { title: 'Le lagon', text: '4 scatters ou plus : 10 tours gratuits, où des bulles multiplient jusqu\'à 100 fois.' },
 });

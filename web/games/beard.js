@@ -19,7 +19,7 @@ const SYM = {
 const NAMES = Object.keys(SYM).slice(0, 10);
 const BUYS = {
   fs7: { cost: 100, label: '7 tours gratuits' },
-  fsr: { cost: 200, label: '7, 10 ou 13 tours gratuits, tirés à la roue' },
+  fsr: { cost: 200, label: 'La roue : 7, 10 ou 13 tours' },
 };
 // La roue de l'achat au hasard : 8 parts de 7 tours, 3 de 10 et 1 de 13, proches des
 // chances réelles (68 %, 25 % et 7 %). Le tirage est fait avant qu'elle tourne.
@@ -58,7 +58,8 @@ const rulesEn = `
 
 const game = {
   mount(root) {
-    const ui = slotLayout(root, { title: 'Barbe-<span>Rouge</span>', subtitle: 'Des cascades qui doublent le multiplicateur à chaque gain, jusqu\'à 20 000 fois la mise.', rules: language() === 'en' ? rulesEn : rules });
+    const ui = slotLayout(root, { title: 'Barbe-<span>Rouge</span>', subtitle: 'Des cascades qui doublent le multiplicateur à chaque gain, jusqu\'à 20 000 fois la mise.', rules: language() === 'en' ? rulesEn : rules,
+      feature: { art: '/art/beard/chest.webp', title: 'Le coffre du capitaine', text: '3 coffres ou plus : 7, 10 ou 13 tours gratuits, où le multiplicateur ne redescend plus.' } });
     let bet = ui.bet.value;
     let busy = false;
     // Une partie quittée en cours de tour ne doit plus rien faire entendre.
