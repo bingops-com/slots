@@ -1,5 +1,5 @@
 // L'état de l'application et tout ce que les scènes de jeu lui demandent : le portefeuille,
-// le mode (classé ou entraînement), les appels au serveur, les préférences. Les composants
+// le mode (classé avec un compte, entraînement sinon), les appels au serveur, les préférences. Les composants
 // React s'y abonnent avec useApp() ; les scènes, dessinées à la main, appellent App.
 import { useSyncExternalStore } from 'react';
 import { $, $$, el, sleep, store } from './dom.js';
@@ -35,7 +35,6 @@ export interface State {
   account: Wallet | null; // compte connecté, tel que le serveur le décrit
   user: Wallet | null; // portefeuille du mode en cours (compte ou entraînement)
   shown: number | null; // solde affiché pendant qu'une manche se joue
-  wantPractice: boolean;
   practice: boolean;
   offline: boolean;
   turbo: boolean;
@@ -47,7 +46,7 @@ export interface State {
 }
 
 let state: State = {
-  ready: false, account: null, user: null, shown: null, wantPractice: false, practice: true,
+  ready: false, account: null, user: null, shown: null, practice: true,
   offline: false, turbo: false, sound: true, lang: 'fr', modal: null, toasts: [], epoch: 0,
 };
 const listeners = new Set<() => void>();
@@ -55,8 +54,8 @@ const SERVER_STATE = state;
 
 function set(patch: Partial<State>) {
   state = { ...state, ...patch };
-  // Sans compte, hors ligne ou à la demande : on s'entraîne.
-  const practice = state.wantPractice || !state.account || state.offline;
+  // Sans compte ou hors ligne, on s'entraîne.
+  const practice = !state.account || state.offline;
   if (practice !== state.practice) state = { ...state, practice };
   listeners.forEach((fn) => fn());
 }
@@ -161,12 +160,6 @@ export const App = {
     set({ epoch: state.epoch + 1 });
   },
 
-  setMode(mode: 'ranked' | 'practice') {
-    if (mode === 'ranked' && !state.account) return set({ modal: 'register' });
-    store.set('mode', mode);
-    void App.restart({ wantPractice: mode === 'practice' });
-  },
-
   setOffline(off: boolean) {
     if (state.offline === off) return;
     const wasPractice = state.practice;
@@ -194,8 +187,7 @@ export const App = {
     try {
       const res = await App.api(`/api/${mode}`, { name, password });
       store.set('signed', '1');
-      store.set('mode', 'ranked');
-      await App.restart({ account: res.user, wantPractice: false, modal: null });
+      await App.restart({ account: res.user, modal: null });
     } catch (e) {
       set({ practice: wasPractice });
       throw e;
@@ -305,7 +297,6 @@ export const App = {
     setLanguage(lang);
     set({
       lang,
-      wantPractice: store.get('mode') === 'practice',
       turbo: store.get('turbo') === '1',
       offline: !navigator.onLine,
       sound: Sound.init(),

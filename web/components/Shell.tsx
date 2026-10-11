@@ -6,9 +6,32 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import { GAMES } from '@/games/catalog';
 import { App, useApp } from '@/lib/app';
 import { Art } from '@/lib/art.js';
+import { store } from '@/lib/dom.js';
 import Icon from './Icon';
 
-function Nav({ open }: { open: boolean }) {
+// Une famille de jeux dans la navigation : son titre l'ouvre et la referme, et le choix
+// est retenu d'une visite à l'autre.
+function Group({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  const [open, setOpen] = useState(true);
+  useEffect(() => setOpen(store.get(`nav.${id}`) !== '0'), [id]);
+  const toggle = () => {
+    store.set(`nav.${id}`, open ? '0' : '1');
+    setOpen(!open);
+  };
+  return (
+    <section className="nav-group">
+      <h2>
+        <button type="button" aria-expanded={open} aria-controls={`nav-${id}`} onClick={toggle}>
+          <span>{title}</span>
+          <i className="chevron" aria-hidden="true" />
+        </button>
+      </h2>
+      <div id={`nav-${id}`} hidden={!open}>{children}</div>
+    </section>
+  );
+}
+
+function Nav() {
   const here = usePathname();
   const link = (href: string, icon: string, label: string) => (
     <Link key={href} href={href} aria-current={here === href ? 'page' : undefined}>
@@ -18,15 +41,12 @@ function Nav({ open }: { open: boolean }) {
   );
   const of = (kind: string) => GAMES.filter((g) => g.kind === kind).map((g) => link(`/g/${g.id}/`, g.icon, g.name));
   return (
-    <nav id="nav" className={open ? 'open' : undefined} aria-label="Jeux">
+    <nav id="nav" aria-label="Jeux">
       {link('/', Art.boat, 'Accueil')}
       {link('/classement/', Art.trophy, 'Classement')}
-      <h2>Machines à sous</h2>
-      {of('slot')}
-      <h2>Jeux de table</h2>
-      {of('table')}
-      <h2>En ligne, à plusieurs</h2>
-      {of('online')}
+      <Group id="slot" title="Machines à sous">{of('slot')}</Group>
+      <Group id="table" title="Jeux de table">{of('table')}</Group>
+      <Group id="online" title="En ligne, à plusieurs">{of('online')}</Group>
     </nav>
   );
 }
@@ -65,42 +85,41 @@ function Mascot() {
   );
 }
 
-function TopBar() {
+// Le solde, et le score quand la partie est classée. Sans compte ou hors ligne, on
+// s'entraîne : le libellé du solde le dit.
+function Readout({ className }: { className?: string }) {
   const s = useApp();
   const u = s.user;
+  if (!u) return null;
   return (
-    <header className="top">
-      <div className="mode" id="mode" role="group" aria-label="Mode de jeu">
-        <button data-mode="ranked" aria-pressed={!s.practice} disabled={s.offline} onClick={() => App.setMode('ranked')}>Classé</button>
-        <button data-mode="practice" aria-pressed={s.practice} onClick={() => App.setMode('practice')}>Entraînement</button>
-        {s.offline && <button className="offline" onClick={() => App.refresh({ offline: false })}>Hors ligne, réessayer</button>}
+    <div className={className ? `wallet ${className}` : 'wallet'}>
+      <div className="wallet-main">
+        <small>{s.practice ? 'Entraînement' : 'À miser'}</small>
+        <b><span className="coin">◈</span><span>{App.fmt(s.shown ?? u.balance)}</span></b>
       </div>
-      <div className="wallet" id="wallet">
-        {u && (
-          <>
-            <div className="wallet-main">
-              <small>À miser</small>
-              <b><span className="coin">◈</span><span id="balance">{App.fmt(s.shown ?? u.balance)}</span></b>
-            </div>
-            <div className="wallet-side">
-              <small>{s.practice ? 'Sans enjeu' : 'Score'}</small>
-              <b>{s.practice ? 'hors classement' : App.fmt(u.score)}</b>
-            </div>
-            {s.practice ? (
-              <button className="btn quiet small" onClick={() => App.resetPractice()}>Remettre à 10 000</button>
-            ) : (
-              u.canAdvance && <button className="btn quiet small" onClick={() => App.advance()}>Demander une avance</button>
-            )}
-          </>
-        )}
-      </div>
+      {!s.practice && (
+        <div className="wallet-side">
+          <small>Score</small>
+          <b>{App.fmt(u.score)}</b>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Réglages et compte : dans la barre du haut sur un ordinateur, dans le menu sur téléphone.
+function Tools() {
+  const s = useApp();
+  return (
+    <>
+      {s.offline && <button className="offline" onClick={() => App.refresh({ offline: false })}>Hors ligne, réessayer</button>}
       <button className="btn quiet small sound" aria-pressed={s.sound} onClick={() => App.toggleSound()}>
         {s.sound ? 'Son activé' : 'Son coupé'}
       </button>
       <button className="btn quiet small" data-notranslate lang={s.lang === 'fr' ? 'en' : 'fr'} onClick={() => App.setLang(s.lang === 'fr' ? 'en' : 'fr')}>
         {s.lang === 'fr' ? 'English' : 'Français'}
       </button>
-      <div className="account" id="account">
+      <div className="account">
         {s.account ? (
           <>
             <span className="who">{s.account.name}</span>
@@ -115,7 +134,7 @@ function TopBar() {
           )
         )}
       </div>
-    </header>
+    </>
   );
 }
 
@@ -164,7 +183,7 @@ function AuthModal() {
 }
 
 export default function Shell({ children }: { children: ReactNode }) {
-  const { toasts } = useApp();
+  const { toasts, user, practice } = useApp();
   const here = usePathname();
   const [menu, setMenu] = useState(false);
   useEffect(() => {
@@ -181,12 +200,23 @@ export default function Shell({ children }: { children: ReactNode }) {
             <img className="logo" src="/brand/logo.webp" alt="" width={36} height={36} />
             <span>lab.bingo <span className="lockup-kind">slots</span></span>
           </Link>
-          <button className="burger" aria-label="Menu" aria-expanded={menu} aria-controls="nav" onClick={() => setMenu(!menu)}><i /></button>
-          <Nav open={menu} />
+          <Readout className="side-wallet" />
+          <button className="burger" aria-label="Menu" aria-expanded={menu} aria-controls="menu" onClick={() => setMenu(!menu)}><i /></button>
+          {/* Sur téléphone, le menu porte aussi le compte et les réglages. */}
+          <div id="menu" className={menu ? 'menu open' : 'menu'}>
+            <div className="menu-tools">
+              <Tools />
+              {user && !practice && <p className="menu-score">Score <b>{App.fmt(user.score)}</b></p>}
+            </div>
+            <Nav />
+          </div>
           <Mascot />
         </aside>
         <div className="main">
-          <TopBar />
+          <header className="top">
+            <Readout />
+            <Tools />
+          </header>
           <main id="view">{children}</main>
           <footer className="foot">Jeu entièrement fictif. Les crédits n&apos;ont aucune valeur : ils ne s&apos;achètent pas et ne se retirent pas.</footer>
         </div>

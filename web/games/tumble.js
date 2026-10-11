@@ -51,7 +51,7 @@ export function makeTumble(cfg) {
 
   return {
     mount(root) {
-      const ui = slotLayout(root, { title: cfg.title, subtitle: cfg.subtitle, rules: rules(language()) });
+      const ui = slotLayout(root, { title: cfg.title, subtitle: cfg.subtitle, rules: rules(language()), feature: { art: `/art/${cfg.art}/scatter.webp`, ...cfg.feature } });
       let bet = ui.bet.value;
       let busy = false;
       let gone = false;
@@ -169,7 +169,7 @@ export function makeTumble(cfg) {
         if (!gone) Sound.ambience(cfg.music);
         let total = 0;
         const hud = (left, global) => {
-          ui.hud.innerHTML = `<span>Tours restants <b>${left}</b></span>${cfg.global ? `<span>Multiplicateur total <b>${times(global || 1)}</b></span>` : ''}<span>Gain des tours gratuits <b><span class="coin">◈</span><span id="bonus-total">${App.fmt(Math.round(total * bet))}</span></b></span>`;
+          ui.hud.innerHTML = `<span>Tours restants <b>${left}</b></span>${cfg.global ? `<span>Multiplicateur total <b>${times(global || 1)}</b></span>` : ''}<span>Gain des tours gratuits <b><span class="coin">◈</span><span id="bonus-total" data-value="${Math.round(total * bet)}">${App.fmt(Math.round(total * bet))}</span></b></span>`;
         };
         let global = 0;
         let left = res.awarded;

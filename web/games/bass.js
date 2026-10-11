@@ -54,7 +54,8 @@ const rulesEn = `
 
 const game = {
   mount(root) {
-    const ui = slotLayout(root, { title: 'Big <span>Catch</span>', subtitle: 'Dix lignes, des poissons à ramasser en tours gratuits, jusqu\'à 2 100 fois la mise.', rules: language() === 'en' ? rulesEn : rules });
+    const ui = slotLayout(root, { title: 'Big <span>Catch</span>', subtitle: 'Dix lignes, des poissons à ramasser en tours gratuits, jusqu\'à 2 100 fois la mise.', rules: language() === 'en' ? rulesEn : rules,
+      feature: { art: '/art/bass/bass.webp', title: 'La grande pêche', text: '3 bars ou plus : 10, 15 ou 20 tours gratuits, où le pêcheur ramasse la valeur des poissons.' } });
     let bet = ui.bet.value;
     let busy = false;
     // Une partie quittée en cours de tour ne doit plus rien faire entendre.

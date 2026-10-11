@@ -12,8 +12,8 @@ export type Lang = 'fr' | 'en';
 const DICT: Record<string, string> = {
   // ----- navigation, barre du haut, compte -----
   Accueil: 'Home', Classement: 'Leaderboard', 'Machines à sous': 'Slots', 'Jeux de table': 'Table games', 'En ligne, à plusieurs': 'Online, multiplayer',
-  Jeux: 'Games', Menu: 'Menu', 'Mode de jeu': 'Game mode', Classé: 'Ranked', Entraînement: 'Practice', 'Hors ligne, réessayer': 'Offline, retry',
-  'À miser': 'To play', 'Sans enjeu': 'No stakes', 'hors classement': 'unranked', 'Remettre à 10 000': 'Reset to 10,000', 'Demander une avance': 'Ask for an advance',
+  Jeux: 'Games', Menu: 'Menu', Classé: 'Ranked', Entraînement: 'Practice', 'Hors ligne, réessayer': 'Offline, retry',
+  'À miser': 'To play', 'Remettre à 10 000': 'Reset to 10,000', 'Demander une avance': 'Ask for an advance',
   'Son activé': 'Sound on', 'Son coupé': 'Sound off', 'Se connecter': 'Log in', 'Se déconnecter': 'Log out', 'Créer un compte': 'Create an account',
   'Créer le compte': 'Create the account', "J'ai déjà un compte": 'I already have an account', Pseudo: 'Username', 'Mot de passe': 'Password',
   'Vous recevez 10 000 crédits fictifs à jouer, comme chaque joueur de la saison. Aucun argent réel.': 'You get 10,000 fictional credits to play with, like every player of the season. No real money.',
@@ -64,6 +64,14 @@ const DICT: Record<string, string> = {
   Mise: 'Bet', 'Diviser la mise par deux': 'Halve the bet', 'Doubler la mise': 'Double the bet', 'Animations rapides': 'Fast animations', Lancer: 'Spin',
   "La barre d'espace lance aussi un tour.": 'The space bar also spins.', 'Tours automatiques': 'Autoplay', 'Nombre de tours automatiques': 'Number of automatic spins',
   'Dernier gain': 'Last win', aucun: 'none', 'Règles et table des gains': 'Rules and paytable', 'Gain du tour': 'Round win',
+  // ----- la carte des tours gratuits, sur la scène de chaque machine -----
+  'Le coffre du capitaine': "The captain's chest", '3 coffres ou plus : 7, 10 ou 13 tours gratuits, où le multiplicateur ne redescend plus.': '3 chests or more: 7, 10 or 13 free spins, where the multiplier never goes back down.',
+  'La grande pêche': 'The big catch', '3 bars ou plus : 10, 15 ou 20 tours gratuits, où le pêcheur ramasse la valeur des poissons.': '3 bass or more: 10, 15 or 20 free spins, where the fisherman collects the value of the fish.',
+  'Trois bonus': 'Three bonuses', '3 scatters identiques ouvrent le leur : des tours gratuits à wilds, à duels, ou une collecte.': '3 identical scatters open theirs: free spins with wilds, with duels, or a collection.',
+  'Deux bonus au choix': 'Two bonuses to choose from', '3 bonus sur les rouleaux 1, 3 et 5 ouvrent 9 à 27 tours gratuits. À vous de choisir lesquels.': '3 bonus symbols on reels 1, 3 and 5 open 9 to 27 free spins. You choose which ones.',
+  'Pluie de niches': 'Raining kennels', 'Niches tombées': 'Kennels dropped', 'Acheter ce bonus': 'Buy this bonus', 'Bonus ouvert par les trois scatters': 'Bonus opened by the three scatters', 'Bonus inconnu': 'Unknown bonus',
+  'La faveur de Neptune': "Neptune's favour", "4 scatters ou plus : 15 tours gratuits, où les orbes s'additionnent d'un tour à l'autre.": '4 scatters or more: 15 free spins, where orbs add up from one spin to the next.',
+  'Le lagon': 'The lagoon', "4 scatters ou plus : 10 tours gratuits, où des bulles multiplient jusqu'à 100 fois.": '4 scatters or more: 10 free spins, where bubbles multiply up to 100 times.',
   'Acheter les tours gratuits': 'Buy the free spins', 'Acheter un bonus': 'Buy a bonus', "Confirmer l'achat": 'Confirm the purchase',
   'Tours restants': 'Spins left', 'Gain des tours gratuits': 'Free spins win', 'Gain du bonus': 'Bonus win',
   'Gros gain': 'Big win', 'Très gros gain': 'Very big win', 'Gain énorme': 'Huge win', 'Gain colossal': 'Colossal win',
@@ -87,7 +95,7 @@ const DICT: Record<string, string> = {
   // ----- Barbe-Rouge -----
   "Des cascades qui doublent le multiplicateur à chaque gain, jusqu'à 20 000 fois la mise.": 'Cascades that double the multiplier with every win, up to 20,000 times the bet.',
   'Mise dorée : moitié plus cher, bonus deux fois plus fréquent': 'Golden bet: half as much again, bonus twice as often', '7 tours gratuits': '7 free spins',
-  '7, 10 ou 13 tours gratuits, tirés à la roue': '7, 10 or 13 free spins, drawn on the wheel', "À l'abordage": 'All aboard', 'Combien de tours gratuits ?': 'How many free spins?',
+  'La roue : 7, 10 ou 13 tours': 'The wheel: 7, 10 or 13 spins', "À l'abordage": 'All aboard', 'Combien de tours gratuits ?': 'How many free spins?',
   'tours gratuits': 'free spins', 'Le gros lot de la roue': "The wheel's top prize", 'Belle prise': 'Nice catch', "C'est parti": 'Off we go',
   // ----- Mort ou Vif -----
   "Des duels qui couvrent un rouleau et multiplient jusqu'à 100 fois, trois bonus, jusqu'à 12 500 fois la mise.": 'Duels that cover a reel and multiply up to 100 times, three bonuses, up to 12,500 times the bet.',

@@ -66,7 +66,7 @@ tout le monde et vide les tableaux ; les parties en cours sont abandonnées.
 | Mort ou Vif | Celles de Wanted Dead or a Wild : 5×5, 15 lignes, un duel qui s'étend en rouleau wild avec un multiplicateur de ×2 à ×100 (plusieurs s'additionnent), et trois bonus achetables : wilds qui restent en place, tours chargés de duels, collecte de wilds et d'un multiplicateur puis trois tours pour les jouer. Plafond 12 500 fois la mise. |
 | Neptune | Celles de Gates of Olympus : grille 6×5, gains à partir de huit symboles où qu'ils soient, cascades, orbes multiplicateurs et 15 tours gratuits où leurs valeurs s'accumulent. Mise ante et achat du bonus. Plafond 5 000 fois la mise. |
 | Le Récif | Celles de Sweet Bonanza : grille 6×5, gains à partir de huit symboles où qu'ils soient, cascades et 10 tours gratuits où les bulles multiplient chaque gain. Mise ante et achat du bonus. Plafond 21 100 fois la mise. |
-| Chiens de bord | Celles de The Dog House : 5×3, 20 lignes, wilds multiplicateurs et tours gratuits où les wilds restent en place. Achat du bonus pour 100 fois la mise. Plafond 6 750 fois la mise. |
+| Chiens de bord | Celles de The Dog House : 5×3, 20 lignes, wilds multiplicateurs, 9 à 27 tours gratuits. Comme dans sa version Megaways, deux bonus au choix du joueur : les wilds restent en place, ou 1 à 4 wilds tombent à chaque tour puis repartent. Les deux rapportent autant en moyenne ; le second est plus régulier. Achat du bonus choisi pour 100 fois la mise. Plafond 6 750 fois la mise. |
 | Blackjack | Sabot infini, croupier qui s'arrête à 17, doubler, séparer une fois, blackjack payé 3 pour 2. |
 | Roulette | Européenne, un seul zéro. |
 | Dés | Le joueur fixe le seuil ; 1 % d'avantage pour la maison. |
@@ -95,7 +95,9 @@ Mesures finales sur 8 à 20 millions de tours (`make sim`) :
 | Le Récif, mise ante | 97,4 % | 4,9 tours | 208 tours |
 | Le Récif, achat des tours gratuits | 96,5 % | | |
 | Chiens de bord | 96,3 % | 3,7 tours | 181 tours |
-| Chiens de bord, achat des tours gratuits | 97,4 % | | |
+| Chiens de bord, pluie de niches | 96,6 % | 3,7 tours | 180 tours |
+| Chiens de bord, achat des niches en place | 97,2 % | | |
+| Chiens de bord, achat de la pluie de niches | 95,8 % | | |
 | Barbe-Rouge, mise dorée | 92 à 96 % | 4,6 tours | 124 tours |
 | Barbe-Rouge, achat de 7 tours | 87 à 96 % | | |
 | Barbe-Rouge, achat à la roue | 92 à 98 % | | |
@@ -180,6 +182,21 @@ classement est une course de bateaux sur une bande bleue ; chaque jeu se joue su
 un panneau bleu où tout est dessiné en blanc, entre ses réglages et le tableau du
 jeu. « Plein écran » ne garde que le solde, les réglages et la scène. Thèmes
 clair et sombre.
+
+Le mode ne se choisit pas : avec un compte la partie est classée, sans compte ou
+hors ligne on s'entraîne, et le libellé du solde le dit (« À miser » ou
+« Entraînement »). Sur téléphone, la bande devient un en-tête qui reste en vue
+(logo, solde, menu) ; le compte, la langue, le son et la navigation sont dans le
+menu, et la scène vient juste dessous, suivie des réglages puis de « Remettre à
+10 000 » (ou « Demander une avance ») et du plein écran. L'accueil occupe toute
+la largeur de l'écran. Dans la navigation, chaque famille de jeux se replie sous
+son titre, et le choix est retenu.
+
+Sur la scène de chaque machine, une carte présente ses tours gratuits : le
+symbole qui les déclenche, ce qu'ils ont de particulier, et leur achat (sur
+Chiens de bord, le choix entre ses deux bonus). Elle
+prend la couleur de la machine et laisse sa place au compteur pendant que les
+tours se jouent.
 
 Les machines proposent des tours automatiques (10 à 100, arrêt d'un clic ou dès
 qu'un tour ne peut plus se jouer).

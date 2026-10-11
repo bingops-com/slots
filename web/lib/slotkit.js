@@ -271,7 +271,10 @@ export async function bigWin(stage, payout, bet) {
 }
 
 // Squelette commun : panneau de mise à gauche, scène à droite, règles en dessous.
-export function slotLayout(root, { title, subtitle, rules }) {
+// feature décrit les tours gratuits de la machine ({ art, title, text }) : la carte est sur
+// la scène, à la place du compteur des tours gratuits tant qu'ils ne sont pas en cours, et
+// porte leur achat (ui.extra).
+export function slotLayout(root, { title, subtitle, rules, feature }) {
   root.innerHTML = `
     <div class="panel">
       <div class="slot-controls"></div>
@@ -281,12 +284,18 @@ export function slotLayout(root, { title, subtitle, rules }) {
         <select aria-label="Nombre de tours automatiques"><option>10</option><option>25</option><option>50</option><option>100</option></select>
         <button class="btn quiet auto-btn" type="button">Tours automatiques</button>
       </div>
-      <div class="slot-extra"></div>
       <div class="lastwin">Dernier gain <b>aucun</b></div>
     </div>
     <div class="stage slot-stage">
       <div class="slot-head"><h1>${title}</h1><p>${subtitle}</p></div>
-      <div class="hud"></div>
+      <div class="hud-row">
+        <div class="feature">
+          <img class="feature-art" src="${feature.art}" alt="" draggable="false">
+          <p class="feature-text"><b>${feature.title}</b><span>${feature.text}</span></p>
+          <div class="slot-extra"></div>
+        </div>
+        <div class="hud"></div>
+      </div>
       <div class="frame"></div>
       <div class="under"></div>
       <div class="tally idle"><small>Gain du tour</small><b><span class="coin">◈</span><span>0,00</span></b></div>

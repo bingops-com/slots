@@ -89,6 +89,9 @@
 }
 html {
   -webkit-text-size-adjust: 100%;
+  /* Une animation qui sort de sa scène ne doit jamais faire défiler la page en largeur. */
+  overflow-x: hidden;
+  overflow-x: clip;
 }
 body {
   margin: 0;
@@ -225,11 +228,49 @@ sup {
   gap: 0.15rem;
   margin-top: 1.75rem;
 }
+/* Chaque famille de jeux se replie sous son titre. */
+.nav-group,
+.nav-group > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
 #nav h2 {
-  margin: 1.25rem 0.75rem 0.35rem;
+  margin: 0.9rem 0 0.1rem;
   font: 500 0.8125rem/1.3 var(--body);
   letter-spacing: 0;
-  opacity: 0.75;
+}
+#nav h2 button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 2.25rem;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: rgb(255 255 255 / 0.78);
+  font: inherit;
+  text-align: left;
+}
+#nav h2 button:hover {
+  background: var(--veil);
+  color: #fff;
+}
+.chevron {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: none;
+  margin-right: 0.2rem;
+  border: solid currentColor;
+  border-width: 0 1.5px 1.5px 0;
+  transform: translateY(-25%) rotate(45deg);
+  transition: transform 0.2s;
+}
+[aria-expanded='false'] > .chevron {
+  transform: rotate(-45deg);
 }
 #nav a {
   display: flex;
@@ -315,6 +356,16 @@ sup {
   animation: ear 5.5s ease-in-out infinite;
 }
 
+/* Sur un ordinateur le menu n'est qu'une enveloppe : la navigation reste dans la bande,
+   le solde et les réglages dans la barre du haut. */
+.menu {
+  display: contents;
+}
+.menu-tools,
+.wallet.side-wallet {
+  display: none;
+}
+
 /* Le bouton du menu : trois traits, visible seulement sur téléphone. */
 .burger {
   display: none;
@@ -373,28 +424,6 @@ sup {
   gap: 0.75rem 1.5rem;
   padding: 1rem clamp(1rem, 3vw, 2.5rem);
   border-bottom: 1px solid var(--line);
-}
-.mode {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
-}
-.mode [data-mode] {
-  height: 2.25rem;
-  padding: 0 0.9rem;
-  border: 0;
-  border-radius: 8px;
-  background: none;
-  font-weight: 500;
-}
-.mode [aria-pressed='true'] {
-  background: var(--sea);
-  color: #fff;
-  font-weight: 700;
 }
 .offline {
   height: 2.25rem;
@@ -1194,6 +1223,175 @@ select:focus-visible {
   font-size: 0.875rem;
   font-weight: 500;
 }
+
+/* Les tours gratuits de la machine, sur sa scène : ce qui les déclenche, et leur achat.
+   La carte tient la place du compteur, qui la remplace pendant que les tours se jouent.
+   Son liseré et ses prix prennent la couleur de la machine. */
+.game {
+  --feature: 0.5rem;
+  --accent: #fff;
+}
+.game:is([data-game='beard'], [data-game='bounty'], [data-game='dogs']) {
+  --feature: 2.75rem;
+}
+/* La carte dit ce que disait le sous-titre, et lui prend sa place : la grille garde la sienne. */
+.slot-head p {
+  display: none;
+}
+[data-game='beard'] {
+  --accent: var(--beard);
+}
+[data-game='bass'] {
+  --accent: var(--oilskin);
+}
+[data-game='bounty'] {
+  --accent: var(--dawn);
+}
+[data-game='neptune'] {
+  --accent: var(--orb);
+}
+[data-game='reef'] {
+  --accent: var(--lagoon);
+}
+[data-game='dogs'] {
+  --accent: var(--medal);
+}
+.hud-row {
+  display: grid;
+  width: 100%;
+  max-width: 46rem;
+  margin-inline: auto;
+}
+.hud-row > * {
+  grid-area: 1 / 1;
+}
+/* Le compteur n'est plus rogné à une rangée : il a la hauteur de la carte qu'il remplace,
+   et ses pastilles passent à la ligne sans qu'aucune disparaisse. */
+.slot-stage .hud-row .hud {
+  align-content: flex-start;
+  height: auto;
+  overflow: visible;
+  pointer-events: none;
+}
+.feature {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.5rem 0.6rem 0.5rem 0.7rem;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-left: 3px solid var(--accent);
+  border-radius: 12px;
+  background: rgb(4 13 60 / 0.72);
+}
+.stage.bonus .feature {
+  visibility: hidden;
+}
+.feature-art {
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: contain;
+}
+.feature-text b {
+  display: block;
+  font: 800 0.9375rem/1.2 var(--display);
+  letter-spacing: -0.01em;
+}
+.feature-text span {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  opacity: 0.86;
+}
+.feature .slot-extra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.feature:has(.buy + .buy, .pick) .slot-extra {
+  grid-column: 1 / -1;
+}
+/* Le choix entre deux bonus : celui qui est retenu porte l'anneau menthe. */
+.pick {
+  display: flex;
+  flex: 2 1 14rem;
+  gap: 0.3rem;
+  padding: 0.2rem;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.1);
+}
+.pick button {
+  flex: 1 1 0;
+  min-height: 2.1rem;
+  padding: 0.2rem 0.5rem;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.pick button:hover:not(:disabled) {
+  background: var(--veil);
+}
+.pick [aria-checked='true'] {
+  background: rgb(4 13 60 / 0.9);
+  box-shadow: inset 0 0 0 2px var(--mint);
+  font-weight: 700;
+}
+.feature .buy-title {
+  display: none;
+}
+.feature .buy {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 0.6rem;
+  flex: 1 1 8rem;
+  width: auto;
+  min-height: 2.5rem;
+  margin: 0;
+  padding: 0.3rem 0.7rem;
+  border-color: rgb(255 255 255 / 0.5);
+  background: var(--veil);
+  color: #fff;
+  font-size: 0.8125rem;
+  line-height: 1.25;
+}
+.feature .buy:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.22);
+}
+.feature .buy small {
+  color: var(--accent);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+.feature .buy:has(.art) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  justify-content: start;
+}
+.feature .buy .art {
+  grid-row: 1 / 3;
+  width: 1.9rem;
+  height: 1.9rem;
+  object-fit: contain;
+}
+.feature .buy .art ~ small {
+  grid-column: 2;
+}
+.feature .buy.armed,
+.feature .buy.armed:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--noir);
+}
+.feature .buy.armed small {
+  color: inherit;
+}
 .buy {
   display: flex;
   flex-direction: column;
@@ -1505,10 +1703,10 @@ select:focus-visible {
 }
 [data-game='bounty'] .slot-stage {
   --chrome: 33.5rem;
-  --frame-w: min(100%, 44rem, max(15rem, calc(100vh - var(--chrome))));
+  --frame-w: min(100%, 44rem, max(15rem, calc(100vh - var(--feature) - var(--chrome))));
 }
 .immersive [data-game='bounty'] .slot-stage {
-  --frame-w: min(100%, max(20rem, calc(100vh - 21rem)));
+  --frame-w: min(100%, max(20rem, calc(100vh - var(--feature) - 21rem)));
 }
 [data-game='bounty'] .slot-stage .frame {
   width: 100%;
@@ -1579,9 +1777,29 @@ select:focus-visible {
   padding: 0.15rem;
   animation: spawn 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
 }
-.pin .sym {
+/* Opaque : le rouleau qui tourne dessous ne doit pas se voir à travers. */
+.pin .sym,
+[data-game] .pinned .pin .sym {
   background: #10319e;
   box-shadow: inset 0 0 0 2px var(--mint);
+}
+/* Une niche de la pluie tombe du haut de la scène sur sa case. */
+.pin.drop {
+  animation: raindrop 0.42s cubic-bezier(0.3, 1.25, 0.5, 1);
+}
+@keyframes raindrop {
+  from {
+    opacity: 0;
+    transform: translateY(-260%);
+  }
+  60% {
+    opacity: 1;
+  }
+}
+[data-game] .pinned .pin.win .sym {
+  background: #2450d8;
+  box-shadow: inset 0 0 0 3px var(--mint);
+  animation: pulse 0.5s;
 }
 /* Le rouleau du duel : deux duellistes, leurs multiplicateurs, puis celui qui reste. */
 .duelreel {
@@ -1683,14 +1901,14 @@ select:focus-visible {
 /* Six rouleaux de cinq : la grille est presque carrée. */
 :is([data-game='neptune'], [data-game='reef']) .slot-stage {
   --chrome: 33.5rem;
-  --frame-w: min(100%, 50rem, max(15rem, calc((100vh - var(--chrome)) * 1.2)));
+  --frame-w: min(100%, 50rem, max(15rem, calc((100vh - var(--feature) - var(--chrome)) * 1.2)));
 }
 .immersive :is([data-game='neptune'], [data-game='reef']) .slot-stage {
-  --frame-w: min(100%, max(20rem, calc((100vh - 21rem) * 1.2)));
+  --frame-w: min(100%, max(20rem, calc((100vh - var(--feature) - 21rem) * 1.2)));
 }
 [data-game='dogs'] .slot-stage {
   --chrome: 33.5rem;
-  --frame-w: min(100%, 72rem, max(15rem, calc((100vh - var(--chrome)) * 1.6667)));
+  --frame-w: min(100%, 72rem, max(15rem, calc((100vh - var(--feature) - var(--chrome)) * 1.6667)));
 }
 :is([data-game='neptune'], [data-game='reef'], [data-game='dogs']) .slot-stage .frame {
   width: 100%;
@@ -1765,6 +1983,13 @@ select:focus-visible {
 .barrels p {
   margin: 0 0 1.2rem;
   font-size: clamp(1.25rem, 3vw, 1.75rem);
+}
+.barrels p small {
+  display: block;
+  margin-top: 0.15rem;
+  font: 500 0.9375rem/1.3 var(--body);
+  letter-spacing: 0;
+  opacity: 0.9;
 }
 .barrel-grid {
   display: grid;
@@ -3011,36 +3236,152 @@ select:focus-visible {
   #app {
     display: block;
   }
+  /* Sur téléphone la bande devient l'en-tête : le logo, le solde, et un bouton derrière
+     lequel se replient le compte, les réglages et la navigation. */
   .side {
     position: static;
+    z-index: 10;
     height: auto;
-    padding: 0.9rem 1rem;
-  }
-  .mascot {
-    display: none;
-  }
-  /* Sur téléphone, la navigation se replie derrière un bouton. */
-  .side {
+    padding: 0.6rem 1rem;
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
+    gap: 0 0.75rem;
+  }
+  .mascot,
+  html:not(.immersive) .top {
+    display: none;
+  }
+  /* Le logo cède la place : quand le solde est long, c'est son texte qui se coupe. */
+  .lockup {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+  .lockup {
+    gap: 0.55rem;
+    font-size: 1.0625rem;
+  }
+  .logo {
+    width: 2rem;
+    height: 2rem;
+  }
+  .lockup > span {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .wallet.side-wallet {
+    display: block;
+    flex: none;
+    text-align: right;
+  }
+  .side-wallet small {
+    color: rgb(255 255 255 / 0.8);
+    font-size: 0.75rem;
+  }
+  .side-wallet b {
+    font-size: 1.0625rem;
+  }
+  .side-wallet .wallet-side {
+    display: none;
   }
   .burger {
     display: grid;
+    flex: none;
   }
-  #nav {
+  .menu {
     display: none;
     flex-basis: 100%;
-    margin-top: 0.75rem;
-    padding-bottom: 0.25rem;
   }
-  #nav.open {
+  .menu.open {
+    display: block;
+  }
+  .menu-tools {
     display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+    padding: 0.85rem 0 1rem;
+    border-block: 1px solid rgb(255 255 255 / 0.2);
   }
-  .account {
-    margin-left: 0;
+  .menu-tools .btn {
+    flex: 1 1 8.5rem;
+    height: 2.75rem;
+    border-color: rgb(255 255 255 / 0.55);
+    color: #fff;
+  }
+  .menu-tools .btn.quiet:hover:not(:disabled) {
+    background: var(--veil);
+  }
+  .menu-tools .btn.primary,
+  .menu-tools .btn.primary:hover:not(:disabled) {
+    border-color: #fff;
+    background: #fff;
+    color: var(--navy);
+  }
+  .menu-tools > .btn:not(.sound, [lang]) {
+    order: 1;
+  }
+  .menu-tools .account {
+    order: -1;
+    flex: 1 0 100%;
+    flex-wrap: wrap;
+    margin: 0;
+  }
+  .menu-score {
+    order: -1;
+    flex: 1 0 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin: 0 0 0.35rem;
+    opacity: 0.9;
+  }
+  .menu-score b {
+    font: 800 1.0625rem/1.2 var(--display);
+    font-variant-numeric: tabular-nums;
+  }
+  .menu-tools .who {
+    flex: 1 0 100%;
+    margin: 0 0 0.15rem;
+  }
+  .menu-tools .offline {
+    flex: 1 0 100%;
+    padding: 0;
+    color: #fff;
+    text-align: left;
+  }
+  #nav {
+    margin-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  /* Plein écran : la bande disparaît, la barre du haut ne garde que le solde. */
+  .immersive .top > :not(.wallet) {
+    display: none;
+  }
+  /* Les tables des gains passent de deux paires par ligne à une seule. */
+  .prose table {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0 1rem;
+    align-items: center;
+  }
+  .prose tbody,
+  .prose tr {
+    display: contents;
+  }
+  .prose td {
+    padding: 0.3rem 0;
+    white-space: normal;
+  }
+  .prose td:nth-child(odd) {
+    white-space: nowrap;
+  }
+  .prose td:empty {
+    display: none;
   }
   .record,
   .game {
@@ -3080,6 +3421,16 @@ select:focus-visible {
   .trail b:nth-child(n + 4) {
     display: none;
   }
+  /* Les messages tiennent dans la largeur de l'écran. */
+  #toasts {
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+    align-items: flex-end;
+  }
+  .toast {
+    max-width: 100%;
+  }
   .rb {
     min-height: 2.4rem;
     font-size: 0.75rem;
@@ -3089,6 +3440,21 @@ select:focus-visible {
   .lb th:nth-child(4),
   .lb td:nth-child(4) {
     display: none;
+  }
+}
+
+/* Quand l'écran est assez haut, l'en-tête du téléphone reste en vue : le solde se lit
+   pendant la partie. Ouvert, le menu défile à l'intérieur. */
+@media (max-width: 56rem) and (min-height: 34rem) {
+  .side {
+    position: sticky;
+    top: 0;
+  }
+  .menu.open {
+    max-height: calc(100vh - 4.25rem);
+    max-height: calc(100dvh - 4.25rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 }
 
@@ -3683,6 +4049,11 @@ select:focus-visible {
 /* Une affiche en tête, trois phrases sur la règle du lieu, puis les jeux par famille et
    la tête de la course. */
 
+/* L'accueil prend toute la largeur : sur un grand écran les affiches s'alignent sur plus
+   de colonnes, et grandissent avec lui, au lieu de laisser la droite vide. */
+#view:has(.landing) {
+  max-width: none;
+}
 .welcome {
   position: relative;
   isolation: isolate;
@@ -3723,6 +4094,8 @@ select:focus-visible {
 }
 .welcome-primary,
 .welcome-quiet {
+  display: inline-flex;
+  align-items: center;
   text-decoration: none;
 }
 .welcome-primary {
@@ -3775,7 +4148,7 @@ select:focus-visible {
 }
 .posters {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(clamp(15rem, 13vw, 24rem), 1fr));
   gap: 1rem;
   margin-top: 1rem;
 }
@@ -3876,8 +4249,10 @@ select:focus-visible {
 .game-bar .notice {
   margin: 0;
 }
-.game-bar .btn {
+.game-actions {
+  display: flex;
   flex: none;
+  gap: 0.5rem;
 }
 .table {
   display: grid;
@@ -3887,7 +4262,7 @@ select:focus-visible {
 }
 /* La scène prend la place : elle grandit avec la fenêtre tant que la grille tient à l'écran. */
 .slot-stage .frame {
-  max-width: min(100%, 72rem, max(26rem, calc((100vh - 31rem) * 1.6667)));
+  max-width: min(100%, 72rem, max(26rem, calc((100vh - var(--feature) - 31rem) * 1.6667)));
 }
 .sideboard {
   position: sticky;
@@ -3956,8 +4331,7 @@ select:focus-visible {
 .immersive .sideboard,
 .immersive .rules,
 .immersive .game-bar .notice,
-.immersive .account,
-.immersive .mode {
+.immersive .account {
   display: none;
 }
 .immersive #app {
@@ -3984,13 +4358,13 @@ select:focus-visible {
   min-height: calc(100vh - 5.5rem);
 }
 .immersive .slot-stage .frame {
-  max-width: min(100%, max(20rem, calc((100vh - 22rem) * 1.6667)));
+  max-width: min(100%, max(20rem, calc((100vh - var(--feature) - 22rem) * 1.6667)));
 }
 :is([data-game='beard'], [data-game='bass']) .slot-stage {
-  --frame-w: min(100%, 72rem, max(15rem, calc((100vh - var(--chrome, 41rem)) * 1.6667)));
+  --frame-w: min(100%, 72rem, max(15rem, calc((100vh - var(--feature) - var(--chrome, 41rem)) * 1.6667)));
 }
 .immersive :is([data-game='beard'], [data-game='bass']) .slot-stage {
-  --frame-w: min(100%, max(20rem, calc((100vh - 30rem) * 1.6667)));
+  --frame-w: min(100%, max(20rem, calc((100vh - var(--feature) - 30rem) * 1.6667)));
 }
 :is([data-game='beard'], [data-game='bass']) .slot-stage .frame,
 :is([data-game='beard'], [data-game='bass']) .slot-stage .under {
@@ -4034,8 +4408,80 @@ select:focus-visible {
   :is([data-game='beard'], [data-game='bass'], [data-game='neptune'], [data-game='reef'], [data-game='dogs']) .slot-stage {
     --frame-w: 100%;
   }
+  /* Dans l'ordre : la scène juste sous l'en-tête, les réglages, ce qui remet des crédits
+     en jeu et le plein écran, puis les règles et le tableau du jeu. */
+  #view:has(.table) {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .table,
+  .game {
+    display: contents;
+  }
   .game-bar {
-    align-items: flex-start;
+    order: 1;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+    margin: 0;
+  }
+  .game-actions {
+    order: -1;
+  }
+  .game-actions .btn {
+    flex: 1 1 0;
+    height: 2.75rem;
+    padding: 0 0.5rem;
+  }
+  .game-bar .notice {
+    font-size: 0.875rem;
+  }
+  .rules {
+    order: 2;
+    width: 100%;
+  }
+  .sideboard {
+    order: 3;
+  }
+  #view:has(.table) > .notice {
+    margin: 0;
+  }
+  /* Le sous-titre laisse sa place à la grille ; les règles le redisent. */
+  .slot-head p {
+    display: none;
+  }
+  .game .stage {
+    gap: 0.75rem;
+  }
+  .feature .slot-extra {
+    grid-column: 1 / -1;
+  }
+  /* Plein écran : le solde, les deux actions, la scène. */
+  .immersive .game-bar {
+    position: static;
+    order: -2;
+  }
+}
+/* Très petits écrans : le logo seul, et un cran de moins au multiplicateur. */
+@media (max-width: 23rem) {
+  .lockup-kind {
+    display: none;
+  }
+  .trail b:nth-child(n + 3) {
+    display: none;
+  }
+  /* Le compteur de pêcheurs se resserre pour tenir à côté du pêcheur. */
+  [data-game='bass'] .hero {
+    width: 4.5rem;
+  }
+  .meter .art,
+  .meter .ic {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+  [data-game='bass'] .meter-step {
+    padding: 0.25rem 0.45rem;
   }
 }
 
@@ -4047,6 +4493,25 @@ select:focus-visible {
 @media (min-width: 56.01rem) and (max-height: 56rem) {
   .top {
     padding-block: 0.5rem;
+  }
+  /* La carte des tours gratuits se réduit à une ligne : son titre et l'achat. */
+  .game,
+  .game:is([data-game='beard'], [data-game='bounty'], [data-game='dogs']) {
+    --feature: 1.25rem;
+  }
+  .feature-text span,
+  .feature:has(.buy + .buy, .pick) .feature-text {
+    display: none;
+  }
+  .feature:has(.buy + .buy, .pick) {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .feature:has(.buy + .buy, .pick) .slot-extra {
+    grid-column: auto;
+    flex-wrap: nowrap;
+  }
+  .feature .buy {
+    flex-basis: 0;
   }
   #view:has(.table) {
     padding-top: 0.75rem;

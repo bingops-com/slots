@@ -61,7 +61,8 @@ const rulesEn = `
 
 const game = {
   mount(root) {
-    const ui = slotLayout(root, { title: 'Mort ou <span>Vif</span>', subtitle: 'Des duels qui couvrent un rouleau et multiplient jusqu\'à 100 fois, trois bonus, jusqu\'à 12 500 fois la mise.', rules: language() === 'en' ? rulesEn : rules });
+    const ui = slotLayout(root, { title: 'Mort ou <span>Vif</span>', subtitle: 'Des duels qui couvrent un rouleau et multiplient jusqu\'à 100 fois, trois bonus, jusqu\'à 12 500 fois la mise.', rules: language() === 'en' ? rulesEn : rules,
+      feature: { art: '/art/bounty/galleon.webp', title: 'Trois bonus', text: '3 scatters identiques ouvrent le leur : des tours gratuits à wilds, à duels, ou une collecte.' } });
     let bet = ui.bet.value;
     let busy = false;
     let gone = false;
@@ -83,7 +84,7 @@ const game = {
     const buyButtons = $$('[data-buy]', ui.extra);
     const labels = () => buyButtons.forEach((x) => {
       x.classList.remove('armed');
-      x.innerHTML = `${BONUS[x.dataset.buy].name}<small>${App.coin(ui.bet.value * BONUS[x.dataset.buy].cost)}</small>`;
+      x.innerHTML = `${img(x.dataset.buy.toLowerCase())}${BONUS[x.dataset.buy].name}<small>${App.coin(ui.bet.value * BONUS[x.dataset.buy].cost)}</small>`;
     });
     labels();
     ui.controls.addEventListener('change', labels);
@@ -189,7 +190,7 @@ const game = {
     }
 
     const hud = (left, total, extra = '') => {
-      ui.hud.innerHTML = `<span>Tours restants <b>${left}</b></span>${extra}<span>Gain du bonus <b><span class="coin">◈</span><span id="bonus-total">${App.fmt(Math.round(total * bet))}</span></b></span>`;
+      ui.hud.innerHTML = `<span>Tours restants <b>${left}</b></span>${extra}<span>Gain du bonus <b><span class="coin">◈</span><span id="bonus-total" data-value="${Math.round(total * bet)}">${App.fmt(Math.round(total * bet))}</span></b></span>`;
     };
 
     // La Main du mort, première partie : la grille se vide, puis wilds et multiplicateurs
