@@ -3,11 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { GAMES } from '@/games/catalog';
+import { pic, GAMES } from '@/games/catalog';
 import { App, useApp } from '@/lib/app';
-import { Art } from '@/lib/art.js';
 import { store } from '@/lib/dom.js';
-import Icon from './Icon';
+import Icon, { Tile } from './Icon';
 
 // Une famille de jeux dans la navigation : son titre l'ouvre et la referme, et le choix
 // est retenu d'une visite à l'autre.
@@ -42,8 +41,8 @@ function Nav() {
   const of = (kind: string) => GAMES.filter((g) => g.kind === kind).map((g) => link(`/g/${g.id}/`, g.icon, g.name));
   return (
     <nav id="nav" aria-label="Jeux">
-      {link('/', Art.boat, 'Accueil')}
-      {link('/classement/', Art.trophy, 'Classement')}
+      {link('/', pic('nav/home'), 'Accueil')}
+      {link('/classement/', pic('nav/trophy'), 'Classement')}
       <Group id="slot" title="Machines à sous">{of('slot')}</Group>
       <Group id="table" title="Jeux de table">{of('table')}</Group>
       <Group id="online" title="En ligne, à plusieurs">{of('online')}</Group>
@@ -112,18 +111,20 @@ function Tools() {
   const s = useApp();
   return (
     <>
-      {s.offline && <button className="offline" onClick={() => App.refresh({ offline: false })}>Hors ligne, réessayer</button>}
+      {s.offline && <button className="offline" onClick={() => App.refresh({ offline: false })}><Tile name="anchor" />Hors ligne, réessayer</button>}
       <button className="btn quiet small sound" aria-pressed={s.sound} onClick={() => App.toggleSound()}>
+        <Tile name={s.sound ? 'bell' : 'bell-off'} />
         {s.sound ? 'Son activé' : 'Son coupé'}
       </button>
       <button className="btn quiet small" data-notranslate lang={s.lang === 'fr' ? 'en' : 'fr'} onClick={() => App.setLang(s.lang === 'fr' ? 'en' : 'fr')}>
+        <Tile name="globe" />
         {s.lang === 'fr' ? 'English' : 'Français'}
       </button>
       <div className="account">
         {s.account ? (
           <>
-            <span className="who">{s.account.name}</span>
-            <button className="btn quiet small" onClick={() => App.signOut()}>Se déconnecter</button>
+            <span className="who"><Tile name="cap" />{s.account.name}</span>
+            <button className="btn quiet small" onClick={() => App.signOut()}><Tile name="rowboat" />Se déconnecter</button>
           </>
         ) : (
           s.ready && (
