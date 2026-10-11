@@ -3748,6 +3748,24 @@ select:focus-visible {
   background: rgb(4 13 60 / 0.25);
   opacity: 0.8;
 }
+/* Une place libre se prend en la touchant tant que les mises sont ouvertes. */
+button.tb-seat.free {
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  opacity: 1;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+button.tb-seat.free:hover,
+button.tb-seat.free:focus-visible {
+  border-color: #fff;
+  background: rgb(4 13 60 / 0.55);
+}
+button.tb-seat.free:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
 .tb-seat.you {
   color: inherit;
   font-size: inherit;
@@ -4490,9 +4508,10 @@ select:focus-visible {
   .tb-seats {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  /* Les places libres sont dites par le message ; le tapis reste court. */
+  /* Une place libre reste basse ; le tapis reste court. */
   .tb-seat.free {
-    display: none;
+    min-height: 3.25rem;
+    align-self: stretch;
   }
   .tb-stage {
     min-height: 0;
