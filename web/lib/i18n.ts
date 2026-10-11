@@ -31,7 +31,7 @@ const DICT: Record<string, string> = {
   "La dotation ne compte pas tant qu'elle n'est pas misée ; ce que vos mises rapportent, si.": 'The grant does not count until it is played; what your bets bring in does.',
   "Sans compte, on s'entraîne": 'Without an account, you practise',
   'Tous les jeux en solo se jouent aussi hors classement, sur votre appareil, même hors ligne.': 'Every solo game can also be played unranked, on your device, even offline.',
-  'Trois machines, chacune avec son univers, ses tours gratuits et ses bonus.': 'Three machines, each with its own world, free spins and bonuses.',
+  'Six machines, chacune avec son univers, ses tours gratuits et ses bonus.': 'Six machines, each with its own world, free spins and bonuses.',
   'En solo, contre la maison : une manche prend quelques secondes.': 'Solo, against the house: a round takes a few seconds.',
   "Une table commune, en classé : on s'y assoit avec un compte.": 'A shared table, ranked: you sit down with an account.',
   'La saison en cours': 'The current season', 'Le classement est une course : plus le score est haut, plus le bateau est loin.': 'The leaderboard is a race: the higher the score, the further the boat.',
