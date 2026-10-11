@@ -172,7 +172,7 @@ capstan, a thud per stopped reel, the ship's bell for a scatter, a drum roll
 while a reel teases, a cannon shot that grows with the multiplier, a drawn
 blade for the wild, a jig on the concertina during free spins. One scale (D
 minor pentatonic) for every win, so a rising multiplier is heard as a rising
-phrase. The sea is the only ambience. "Son activé / Son coupé" in the top bar
+phrase. There is no ambience: outside a bonus tune, nothing plays between two events. "Son activé / Son coupé" in the top bar
 is remembered; a hidden tab is silent. Big Catch has its own voice on the same
 engine: splashes, a reel being wound in, a rising note per fish caught, a
 whistled tune in D major during free spins.

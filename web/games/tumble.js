@@ -65,7 +65,7 @@ export function makeTumble(cfg) {
       ui.stage.prepend(el(`<div class="scene" aria-hidden="true"><i class="scenery" style="background-image:url(/art/${cfg.art}/stage.webp)"></i><i class="glow"></i></div>`));
       for (let i = 1; i <= 9; i++) new Image().src = `/art/${cfg.art}/s${i}.webp`;
       const fx = createFx(ui.stage);
-      Sound.ambience('sea');
+      Sound.ambience(null);
 
       const ante = el('<label class="toggle"><input type="checkbox"> Mise ante : un quart plus cher, tours gratuits deux fois plus fréquents</label>');
       ui.controls.append(ante);
@@ -189,7 +189,7 @@ export function makeTumble(cfg) {
           await App.wait(150);
         }
         ui.stage.classList.remove('bonus');
-        if (!gone) Sound.ambience('sea');
+        if (!gone) Sound.ambience(null);
         sfx('bonusEnd');
         ui.hud.innerHTML = '';
         await stageBanner(ui.stage, `${App.coin(Math.round(res.bonus.total * bet))}<small>gagnés en ${res.bonus.spins.length} tours gratuits</small>`, 2200);
