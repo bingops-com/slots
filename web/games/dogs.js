@@ -66,7 +66,7 @@ const game = {
     ui.stage.prepend(el('<div class="scene" aria-hidden="true"><i class="scenery" style="background-image:url(/art/dogs/stage.webp)"></i><i class="glow"></i></div>'));
     for (const name of ['bone', 'collar', 'dog1', 'dog2', 'dog3', 'dog4', 'wild', 'scatter']) new Image().src = `/art/dogs/${name}.webp`;
     const fx = createFx(ui.stage);
-    Sound.ambience('sea');
+    Sound.ambience(null);
 
     // Le bonus choisi vaut pour les scatters comme pour l'achat ; il est retenu.
     let mode = store.get('dogs.bonus') === 'rain' ? 'rain' : 'sticky';
@@ -225,7 +225,7 @@ const game = {
       }
       ui.stage.classList.remove('bonus');
       pinned.replaceChildren();
-      if (!gone) Sound.ambience('sea');
+      if (!gone) Sound.ambience(null);
       sfx('bonusEnd');
       ui.hud.innerHTML = '';
       await stageBanner(ui.stage, `${App.coin(Math.round(res.bonus.total * bet))}<small>gagnés en ${res.bonus.spins.length} tours gratuits</small>`, 2200);

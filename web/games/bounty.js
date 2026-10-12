@@ -78,7 +78,7 @@ const game = {
       new Image().src = `/art/bounty/${name}.webp`;
     }
     const fx = createFx(ui.stage);
-    Sound.ambience('sea');
+    Sound.ambience(null);
 
     ui.extra.innerHTML = `<p class="buy-title">Acheter un bonus</p>${Object.keys(BONUS).map((k) => `<button class="btn quiet buy" data-buy="${k}"></button>`).join('')}`;
     const buyButtons = $$('[data-buy]', ui.extra);
@@ -243,7 +243,7 @@ const game = {
       ui.stage.classList.remove('bonus');
       pinned.replaceChildren();
       $$('.duelreel', ui.frame).forEach((x) => x.remove());
-      if (!gone) Sound.ambience('sea');
+      if (!gone) Sound.ambience(null);
       sfx('bonusEnd');
       ui.hud.innerHTML = '';
       await stageBanner(ui.stage, `${App.coin(Math.round(b.total * bet))}<small>gagnés avec ${info.name}</small>`, 2200);

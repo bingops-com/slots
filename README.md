@@ -221,7 +221,9 @@ Les sons sont fabriqués dans le navigateur (aucun fichier) : cliquetis des
 rouleaux, cloche des scatters, mèche puis coup de canon pour Barbe-Rouge ; gerbes
 d'eau, moulinet et une note qui monte à chaque prise pour Big Catch ; un air par
 machine pendant les tours gratuits, avec des voix propres aux cascades, aux orbes
-et aux wilds collants. « Son activé / Son coupé » se règle dans la
+et aux wilds collants. Aucun bruit de mer ni fond sonore ne joue entre les
+actions ; les airs des bonus restent actifs pendant les tours gratuits.
+« Son activé / Son coupé » se règle dans la
 barre du haut. Sous la grille, le gain du tour s'additionne en grand et reste
 affiché jusqu'au tour suivant.
 

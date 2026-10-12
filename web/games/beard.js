@@ -127,7 +127,7 @@ const game = {
       node.classList.add(cls);
     };
     trail(1);
-    Sound.ambience('sea');
+    Sound.ambience(null);
 
     // Le milieu d'un groupe de cases, là où le boulet doit tomber.
     const middle = (cells) => {
@@ -319,7 +319,7 @@ const game = {
         await App.wait(250);
       }
       ui.stage.classList.remove('bonus');
-      if (!gone) Sound.ambience('sea');
+      if (!gone) Sound.ambience(null);
       sfx('bonusEnd');
       await stageBanner(ui.stage, `${App.coin(Math.round(res.bonus.total * bet))}<small>gagnés en ${res.bonus.spins.length} tours gratuits</small>`, 2200);
     }

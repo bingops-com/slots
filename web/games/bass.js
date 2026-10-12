@@ -77,7 +77,7 @@ const game = {
       void node.offsetWidth;
       node.classList.add(cls);
     };
-    Sound.ambience('sea');
+    Sound.ambience(null);
 
     const BUY = 100;
     ui.extra.innerHTML = '<p class="buy-title">Acheter les tours gratuits</p><button class="btn quiet buy"></button>';
@@ -276,7 +276,7 @@ const game = {
         await App.wait(150);
       }
       ui.stage.classList.remove('bonus');
-      if (!gone) Sound.ambience('sea');
+      if (!gone) Sound.ambience(null);
       sfx('bonusEnd');
       ui.hud.innerHTML = '';
       meterBox.innerHTML = '';
