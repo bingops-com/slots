@@ -258,36 +258,8 @@ export const Sound = (() => {
     };
   }
 
-  const loops = {
-    // La mer : deux couches de souffle qui enflent et retombent.
-    sea() {
-      const b = bus(1);
-      const nodes = [];
-      [[420, 0.11, 0.03], [1300, 0.07, 0.012]].forEach(([f, rate, level]) => {
-        const s = ctx.createBufferSource();
-        s.buffer = noiseBuf;
-        s.loop = true;
-        const flt = ctx.createBiquadFilter();
-        flt.type = 'lowpass';
-        flt.frequency.value = f;
-        const g = ctx.createGain();
-        g.gain.value = level;
-        const lfo = ctx.createOscillator();
-        lfo.frequency.value = rate;
-        const depth = ctx.createGain();
-        depth.gain.value = level * 0.7;
-        lfo.connect(depth).connect(g.gain);
-        s.connect(flt).connect(g).connect(b.node);
-        s.start();
-        lfo.start();
-        nodes.push(s, lfo);
-      });
-      return () => {
-        b.close();
-        setTimeout(() => nodes.forEach((n) => n.stop()), 900);
-      };
-    },
-  };
+  // Les airs joués pendant les tours gratuits ; hors bonus, aucun fond sonore.
+  const loops = {};
 
   // Un air en boucle à 6/8 : deux phrases de quatre mesures, une basse et un pied qui
   // marquent les temps. voice(sortie, instant, note, durée) joue la mélodie.
@@ -432,7 +404,7 @@ export const Sound = (() => {
     },
     reels: () => (on && live() ? reels() : silent),
     coins: () => (on && live() ? coins() : silent),
-    // Ambiance du jeu affiché : 'sea', 'shanty' ou null.
+    // Air du bonus en cours ('shanty', 'hornpipe'…), ou null pour le silence.
     ambience(name) {
       want = name;
       apply();
