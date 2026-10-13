@@ -214,10 +214,10 @@ func TestSharedTable(t *testing.T) {
 		t.Fatalf("first bet: %d %v", code, out)
 	}
 	// A player may hold several places, but not twice the same one.
-	if code, _ = a.do("POST", "/api/table/bet", `{"bet":1000,"seat":0}`); code != 400 {
+	if code, _ = a.do("POST", "/api/table/bet", `{"bet":1000,"seat":4}`); code != 400 {
 		t.Fatalf("second bet on the same place: %d", code)
 	}
-	if code, out = a.do("POST", "/api/table/bet", `{"bet":1000,"seat":4}`); code != 200 || out["user"].(map[string]any)["balance"].(float64) != 998_000 {
+	if code, out = a.do("POST", "/api/table/bet", `{"bet":1000,"seat":0}`); code != 200 || out["user"].(map[string]any)["balance"].(float64) != 998_000 {
 		t.Fatalf("second hand: %d %v", code, out)
 	}
 	if code, _ = b.do("POST", "/api/table/ready", ""); code != 400 {

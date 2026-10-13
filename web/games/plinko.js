@@ -23,6 +23,7 @@ const TABLES = {
 };
 const HOP = 150; // millisecondes d'un plot au suivant
 const MAX_BALLS = 12;
+const SEND_INTERVAL = 240; // one request at a time, at most about four per second
 const label = (m) => (m >= 100 ? m.toLocaleString('fr-FR') : m.toLocaleString('fr-FR', { maximumFractionDigits: 1 }));
 // Une case se lit à sa teinte : sous la mise, à la mise, au-dessus, et les grosses.
 const tier = (m) => (m < 1 ? 'pays-under' : m < 2 ? 'pays-even' : m < 10 ? 'pays-over' : 'pays-top');
@@ -35,7 +36,8 @@ const game = {
         <div class="field"><label for="p-risk">Risque</label><select id="p-risk"><option value="low">Faible</option><option value="medium" selected>Moyen</option><option value="high">Élevé</option></select></div>
         <div class="field"><label for="p-rows">Rangées</label><select id="p-rows"><option>8</option><option selected>12</option><option>16</option></select></div>
         <button class="btn primary play">Lâcher une perle</button>
-        <p class="hint">La barre d'espace lâche aussi une perle ; plusieurs peuvent tomber en même temps. Les cases du milieu rendent moins que la mise, celles des bords beaucoup plus.</p>
+        <p class="hint">Espace lâche une perle. Maintenez la touche pour un envoi continu ; relâchez pour arrêter. Les cases du milieu rendent moins que la mise, celles des bords beaucoup plus.</p>
+        <p class="hint" id="p-sending" role="status" hidden>Envoi continu : relâchez Espace pour arrêter</p>
       </div>
       <div class="stage plinko-stage">
         <div class="scene" aria-hidden="true"><i class="scenery" style="background-image:url(/art/tables/plinko-stage.webp)"></i></div>
@@ -64,6 +66,10 @@ const game = {
     let shown = null; // solde affiché pendant que des perles tombent
     let last = null; // dernier portefeuille rendu par le moteur
     let lastTick = 0;
+    let pending = false;
+    let holding = false;
+    let spaceOwned = false;
+    let sendTimer = 0;
 
     const rows = () => Number(rowsSel.value);
     const table = () => TABLES[rows()][risk.value];
@@ -176,17 +182,19 @@ const game = {
 
     // Plus rien ne tombe : le solde affiché redevient celui du portefeuille.
     function settle() {
-      if (balls.length || !last) return;
+      if (balls.length || pending || !last) return;
       shown = null;
       App.setUser(last);
       risk.disabled = rowsSel.disabled = false;
     }
 
     async function drop() {
-      if (gone || balls.length >= MAX_BALLS) return;
+      if (gone || pending || balls.length >= MAX_BALLS) return;
+      if (document.hidden || document.querySelector('dialog[open]')) { stopSending(); return; }
       const stake = bet.value;
       const balance = shown ?? App.user.balance;
-      if (stake > balance) return App.toast('Il ne reste pas assez de crédits pour cette mise');
+      if (stake > balance) { stopSending(); return App.toast('Il ne reste pas assez de crédits pour cette mise'); }
+      pending = true;
       shown = balance - stake;
       App.showBalance(shown);
       // Le plateau ne change pas pendant qu'une perle tombe.
@@ -198,6 +206,8 @@ const game = {
         balls.push({ path: res.path, rows: res.rows, res, t0: performance.now(), lit: -1 });
         run();
       } catch (e) {
+        if (gone) return;
+        stopSending();
         App.toast(e.message);
         shown += stake;
         App.showBalance(shown);
@@ -205,6 +215,9 @@ const game = {
           shown = null;
           risk.disabled = rowsSel.disabled = false;
         }
+      } finally {
+        pending = false;
+        if (!gone) settle();
       }
     }
 
@@ -214,13 +227,42 @@ const game = {
     };
     risk.onchange = rowsSel.onchange = redraw;
     $('.play', root).onclick = drop;
-    const unbind = App.onSpace(drop);
+    const interactive = (target) => target instanceof Element && target.closest('input,select,textarea,a,summary,[contenteditable="true"],[role="textbox"],button:not(.play)');
+    function stopSending() {
+      holding = false;
+      clearInterval(sendTimer);
+      sendTimer = 0;
+      $('#p-sending', root).hidden = true;
+    }
+    const keyDown = (event) => {
+      if (event.code !== 'Space' || event.ctrlKey || event.altKey || event.metaKey || interactive(event.target) || document.querySelector('dialog[open]')) return;
+      event.preventDefault();
+      spaceOwned = true;
+      if (holding || event.repeat) return;
+      holding = true;
+      $('#p-sending', root).hidden = false;
+      void drop();
+      if (holding) sendTimer = setInterval(() => { if (holding) void drop(); }, SEND_INTERVAL);
+    };
+    const keyUp = (event) => { if (event.code === 'Space' && spaceOwned) { event.preventDefault(); spaceOwned = false; stopSending(); } };
+    const visibility = () => { if (document.hidden) stopSending(); };
+    const focus = (event) => { if (interactive(event.target)) stopSending(); };
+    document.addEventListener('keydown', keyDown);
+    window.addEventListener('keyup', keyUp);
+    window.addEventListener('blur', stopSending);
+    document.addEventListener('visibilitychange', visibility);
+    document.addEventListener('focusin', focus);
     const resize = () => run();
     window.addEventListener('resize', resize);
     redraw();
     return () => {
       gone = true;
-      unbind();
+      stopSending();
+      document.removeEventListener('keydown', keyDown);
+      window.removeEventListener('keyup', keyUp);
+      window.removeEventListener('blur', stopSending);
+      document.removeEventListener('visibilitychange', visibility);
+      document.removeEventListener('focusin', focus);
       window.removeEventListener('resize', resize);
       cancelAnimationFrame(frame);
       fx.destroy();

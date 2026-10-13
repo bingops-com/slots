@@ -122,11 +122,26 @@ tout le monde et vide les tableaux ; les parties en cours sont abandonnées.
 | Blackjack | Sabot infini, croupier qui s'arrête à 17, doubler, séparer une fois, blackjack payé 3 pour 2. |
 | Roulette | Européenne, un seul zéro. |
 | Dés | Le joueur fixe le seuil ; 1 % d'avantage pour la maison. |
-| Blackjack à plusieurs | Une table de cinq places, en classé seulement. Chaque place est un rond où l'on pose sa mise en le touchant ; un joueur peut en prendre plusieurs et joue alors plusieurs mains, de la première place à la dernière. La table attend une première mise et distribue dès que tous les joueurs présents ont demandé la donne, cinq secondes plus tard au plus ; chacun joue ensuite à son tour (cinq secondes, sinon la main reste), et le résultat reste cinq secondes sur le tapis. Mêmes règles que le blackjack en solo, sans la séparation. |
+| Blackjack à plusieurs | Une table de cinq places, en classé seulement. Les places se remplissent, reçoivent leurs cartes et jouent de droite à gauche ; un joueur peut en prendre plusieurs. Chaque place peut être séparée une fois en deux mains si les cartes ont la même valeur. Les as séparés reçoivent une seule carte chacun ; un 21 après séparation est un gain ordinaire. Mises par jetons, jauge ou montant précis ; mises secondaires Perfect Pairs et 21+3 facultatives. La table distribue dès que tous les joueurs présents le demandent, cinq secondes plus tard au plus ; chacun joue ensuite à son tour (cinq secondes, sinon la main reste), et le résultat reste cinq secondes sur le tapis. |
 | Mines | 25 cases, 1 à 24 mines ; 1 % d'avantage pour la maison. |
 | Texas hold'em | Une table de six places, sans limite, en classé seulement. On s'assoit avec une cave de 40 à 200 grosses blindes prise sur ses crédits, on repart avec ce qu'il reste. Des personnages de la maison, chacun avec son tempérament, complètent la table ; la maison ne prélève rien. |
-| Plinko | Une perle tombe entre 8, 12 ou 16 rangées de plots vers une case à multiplicateur ; trois niveaux de risque. Chaque table rend environ 99 % des mises. |
+| Plinko | Une perle tombe entre 8, 12 ou 16 rangées de plots vers une case à multiplicateur ; trois niveaux de risque. Espace envoie une perle ; maintenir Espace continue à raison d'environ quatre envois par seconde au maximum, avec douze perles en vol et une seule requête à la fois. Relâcher, quitter l'onglet, ouvrir un dialogue ou manquer de crédits arrête l'envoi. Chaque table rend environ 99 % des mises. |
 | Crash | Le multiplicateur grimpe depuis ×1 et s'arrête à un point tiré d'avance et tenu secret ; il faut encaisser avant. La chance d'atteindre ×N est de 0,99 / N, soit 1 % d'avantage pour la maison. Encaissement automatique possible. Le temps qui compte est celui du serveur. |
+
+Les mises secondaires du blackjack à plusieurs portent sur les deux cartes
+initiales de la place et, pour 21+3, la carte visible du croupier. Elles ne
+changent pas après une séparation et sont réglées à la fin de la donne. Chaque
+mise secondaire est facultative, au moins égale à la mise minimale lorsqu'elle
+est activée, et ne peut pas dépasser la mise principale. Tous les engagements
+sont vérifiés et débités ensemble par le serveur.
+
+Les barèmes suivent la [fiche publique du blackjack Stake/Evolution](https://stake.com/casino/games/evolution-first-person-blackjack).
+Les rapports ci-dessous sont les gains ; une mise gagnante est également rendue :
+
+| Mise secondaire | Combinaison | Gain |
+| --- | --- | --- |
+| Perfect Pairs | Paire de couleurs différentes / de même couleur / identique | 6:1 / 12:1 / 25:1 |
+| 21+3 | Couleur / suite / brelan / suite de même enseigne / brelan de même enseigne | 5:1 / 10:1 / 30:1 / 40:1 / 100:1 |
 
 Les noms, les dessins et les sons sont originaux. Les règles des cinq machines
 sont celles des jeux dont elles s'inspirent, relevées sur des fiches publiques ;
@@ -240,7 +255,16 @@ hors ligne on s'entraîne, et le libellé du solde le dit (« À miser » ou
 « Entraînement »). Sur téléphone, la bande devient un en-tête qui reste en vue
 (logo, solde, menu) ; le compte, la langue, le son et la navigation sont dans le
 menu, et la scène vient juste dessous, suivie des réglages puis de « Remettre à
-10 000 » (ou « Demander une avance ») et du plein écran. Les icônes sont dessinées pour le lieu : chaque jeu a la sienne dans la navigation (la pieuvre du blackjack à plusieurs, la barre-roulette, le coquillage des mines), le son est une cloche de bord, la langue un globe, le plein écran une longue-vue, et le crédit une pièce frappée d'une barre de navire. L'accueil occupe toute
+10 000 » (ou « Demander une avance ») et du plein écran. Les boutons de son,
+langue, compte, déconnexion et plein écran utilisent des SVG Lucide standards,
+monochromes de 18 px, intégrés au site avec leur libellé. Leur
+[licence](web/public/licenses/lucide.txt) est distribuée avec les fichiers du
+site ; aucune icône ne nécessite un accès à un service externe. Chaque jeu garde
+son illustration dans la navigation (la pieuvre du blackjack à plusieurs, la
+barre-roulette, le coquillage des mines), et les montants leur pièce frappée
+d'une barre de navire. Les mises du blackjack proposent des jetons, une jauge
+accessible au clavier et un montant précis ; les deux mains d'une séparation
+restent à la même place avec la main active mise en évidence. L'accueil occupe toute
 la largeur de l'écran. Chaque jeu y a son affiche : une scène où son personnage ou son objet est en action (le duel de Mort ou Vif, la pieuvre qui distribue, le crabe qui lance les dés), préparée par `art/build.py`. Dans la navigation, chaque famille de jeux se replie sous
 son titre, et le choix est retenu.
 

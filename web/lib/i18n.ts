@@ -134,6 +134,12 @@ const DICT: Record<string, string> = {
     'Five seats: tap a circle to place your bet on it, several if you want to play several hands, then ask for the deal. It starts as soon as every player present has asked for it, five seconds at most after the first bet. Five seconds to act, otherwise the hand stands. Blackjack pays 3 to 2, dealer stands on 17.',
   "La table à plusieurs se joue en classé, avec un compte. À l'entraînement, le": 'The shared table is played ranked, with an account. In practice,', 'blackjack en solo': 'solo blackjack', 'reste ouvert.': 'stays open.',
   'Créez un compte pour vous asseoir à la table': 'Create an account to sit at the table',
+  'Mise principale': 'Main bet', 'Mise à régler': 'Bet to adjust', 'Valeur du jeton': 'Chip value', 'Montant sélectionné': 'Selected amount', 'Montant en crédits': 'Amount in credits', crédits: 'credits', Retirer: 'Clear', 'Total par place': 'Total per seat',
+  'Mises secondaires et gains': 'Side bets and payouts',
+  'Choisissez vos jetons et réglez la jauge, puis misez sur une ou plusieurs places. La distribution et les tours vont de droite à gauche. Cinq secondes pour jouer, sinon la main reste. Une paire peut être séparée une fois par place ; les as séparés reçoivent une seule carte.': 'Choose your chips and adjust the gauge, then bet on one or more seats. Dealing and turns go from right to left. Five seconds to act, otherwise the hand stands. A pair can be split once per seat; split aces receive one card only.',
+  'Les mises secondaires sont facultatives, limitées à la mise principale et réglées à la fin de la donne. Elles utilisent les deux cartes initiales, même après une division.': 'Side bets are optional, capped at the main bet and settled at the end of the deal. They use the original two cards, even after a split.',
+  'Perfect Pairs : paire mixte 6:1, même couleur 12:1, identique 25:1. 21+3 : couleur 5:1, suite 10:1, brelan 30:1, quinte flush 40:1, brelan assorti 100:1. Ces gains s’ajoutent au retour de la mise.': 'Perfect Pairs: mixed pair 6:1, same colour 12:1, identical 25:1. 21+3: flush 5:1, straight 10:1, trips 30:1, straight flush 40:1, suited trips 100:1. These winnings are in addition to the returned stake.',
+  'Chaque mise secondaire doit être nulle ou comprise entre la mise minimale et la mise principale': 'Each side bet must be zero or between the minimum bet and the main bet',
   // ----- roulette -----
   Jeton: 'Chip', 'Mise totale': 'Total bet', 'Lancer la bille': 'Spin the ball', 'Retirer les jetons': 'Clear the chips',
   'Un clic pose un jeton, un clic droit retire la mise de la case.': 'A click places a chip, a right click removes the bet from the square.',
@@ -147,6 +153,8 @@ const DICT: Record<string, string> = {
   "La barre d'espace lâche aussi une perle ; plusieurs peuvent tomber en même temps. Les cases du milieu rendent moins que la mise, celles des bords beaucoup plus.":
     'The space bar also drops a pearl; several can fall at once. The middle buckets return less than the bet, the edges far more.',
   'Choisissez le risque et les rangées, puis lâchez une perle': 'Pick the risk and the rows, then drop a pearl',
+  'Espace lâche une perle. Maintenez la touche pour un envoi continu ; relâchez pour arrêter. Les cases du milieu rendent moins que la mise, celles des bords beaucoup plus.': 'Space drops a pearl. Hold it for continuous sending; release to stop. Middle buckets return less than the bet, edge buckets much more.',
+  'Envoi continu : relâchez Espace pour arrêter': 'Continuous sending: release Space to stop',
   // ----- crash -----
   'Remonter tout seul à': 'Surface automatically at', jamais: 'never', Plonger: 'Dive', 'en surface': 'at the surface',
   "La barre d'espace fait plonger, puis remonter. Une fois sur deux, la coque cède avant ×2.": 'The space bar dives, then surfaces. Half the time, the hull gives way before ×2.',
@@ -182,6 +190,7 @@ const ordinal = (n: string) => `${n}${n.endsWith('1') && n !== '11' ? 'st' : n.e
 
 // Textes à trous. $1, $2… reprennent les morceaux capturés.
 const RULES: [RegExp, string | ((...m: string[]) => string)][] = [
+  [/^Main (\d+)$/, 'Hand $1'], [/^(\d+) crédits$/, '$1 credits'],
   [/^Seuil des dés$/, 'Dice threshold'], [/^Tapis de roulette$/, 'Roulette betting board'], [/^Case (\d+)$/, 'Tile $1'],
   [/^Classement de la saison (\d+)$/, 'Season $1 leaderboard'], [/^En tête de la saison (\d+)$/, 'Leading season $1'], [/^Classement de (.+)$/, '$1 board'],
   [/^Vous êtes (\d+)(?:er|e) sur (\d+), avec (.+)\.$/, (_, r, n, s) => `You are ${ordinal(r)} of ${n}, with ${s}.`],

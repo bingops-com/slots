@@ -31,6 +31,7 @@ async function audit(page,label) {
   if(issues.length)console.log(`A11Y ${label}: ${JSON.stringify(issues)}`);
 }
 async function scenario(name,work) {
+  if(process.env.SLOTS_E2E_FILTER && !name.includes(process.env.SLOTS_E2E_FILTER))return;
   try { await work(); report.scenarios.push({name,passed:true});console.log(`ok ${name}`); }
   catch(e){report.scenarios.push({name,passed:false,error:e.message});console.log(`FAIL ${name}: ${e.message.split('\n')[0]}`);}
 }
@@ -94,7 +95,7 @@ try {
       await host.locator('.tb-panel .play').click();await guest.locator('.tb-panel .play').click();
       await host.waitForFunction(()=>document.querySelectorAll('.tb-seat.you .pcard').length>=4);
       const rank=await host.evaluate(async()=>{const r=await fetch('/api/table');return r.status===200?await r.json():null;});
-      if(rank) check(rank.table.seats.filter(s=>s.you).map(s=>s.pos).join() === '0,4','the selected hands were assigned to different seats');
+      if(rank) check(rank.table.seats.filter(s=>s.you).map(s=>s.pos).join() === '4,0','the selected hands did not play from right to left');
       for(const [width,height] of sizes)for(const colorScheme of ['light','dark']) {
         await host.setViewportSize({width,height});await host.emulateMedia({colorScheme});
         await audit(host,`${width} ${colorScheme} multiplayer blackjack`);
@@ -109,6 +110,103 @@ try {
       await ctx.setOffline(true);await p.reload();await p.locator('.dice-stage').waitFor();
       await p.locator('.game .play').click();await p.locator('#d-result').waitFor();
       check((await p.locator('#d-result').innerText()).length>0,'offline practice produced no roll');
+    } finally {await ctx.close();}
+  });
+  await scenario('Plinko Space sends once or continuously and stops safely',async()=>{
+    const ctx=await context();const p=await ctx.newPage();
+    try {
+      await ready(p,'/g/plinko/');
+      await p.waitForFunction(()=>!!window.SlotsEngine);
+      await p.evaluate(()=>{ const native=SlotsEngine.play;window.plinkoCalls=0;SlotsEngine.play=(...args)=>{if(args[1]==='plinko')window.plinkoCalls++;return native(...args);};document.activeElement?.blur(); });
+      await p.keyboard.press('Space');await p.waitForFunction(()=>window.plinkoCalls===1);await p.waitForTimeout(350);
+      check(await p.evaluate(()=>window.plinkoCalls)===1,'single Space sent more than one pearl');
+      await p.keyboard.down('Space');await p.waitForTimeout(1050);await p.keyboard.up('Space');
+      const stopped=await p.evaluate(()=>window.plinkoCalls);
+      check(stopped>=4 && stopped<=7,'held Space did not use a bounded send cadence');
+      await p.waitForTimeout(350);check(await p.evaluate(()=>window.plinkoCalls)===stopped,'sending continued after keyup');
+      await p.locator('#bet-input').focus();await p.keyboard.press('Space');await p.waitForTimeout(300);
+      check(await p.evaluate(()=>window.plinkoCalls)===stopped,'typing triggered Plinko');
+      const sound=p.locator('.sound').filter({visible:true});const label=await sound.innerText();await sound.focus();await p.keyboard.press('Space');
+      check((await sound.innerText())!==label,'Plinko stole Space from another button');
+      check(await p.evaluate(()=>window.plinkoCalls)===stopped,'another button triggered Plinko');
+      await p.evaluate(()=>document.activeElement?.blur());await p.keyboard.down('Space');await p.waitForTimeout(300);await p.evaluate(()=>window.dispatchEvent(new Event('blur')));
+      const blurred=await p.evaluate(()=>window.plinkoCalls);await p.waitForTimeout(400);await p.keyboard.up('Space');
+      check(await p.evaluate(()=>window.plinkoCalls)===blurred,'sending continued after blur');
+      await p.waitForTimeout(2800);
+      await p.evaluate(()=>localStorage.setItem('slots.practice',JSON.stringify({stake:100,loot:0,debt:0,wagered:0,won:0,rounds:0,rebuys:0})));
+      await p.reload();await p.waitForFunction(()=>!!window.SlotsEngine && document.querySelector('.plinko-board'));
+      await p.evaluate(()=>{const native=SlotsEngine.play;window.plinkoCalls=0;SlotsEngine.play=(...args)=>{if(args[1]==='plinko')window.plinkoCalls++;return native(...args);};document.activeElement?.blur();});
+      await p.keyboard.down('Space');await p.waitForTimeout(900);await p.keyboard.up('Space');
+      check(await p.evaluate(()=>window.plinkoCalls)===1,'insufficient balance did not stop the held send');
+    } finally {await ctx.close();}
+  });
+  await scenario('live blackjack chips, gauge, side bets, split hands and SVG controls',async()=>{
+    const ctx=await context();const p=await ctx.newPage();
+    try {
+      await ctx.addInitScript(()=>localStorage.setItem('slots.signed','1'));
+      let user={name:'LiveDemo',balance:1000000,stake:1000000,loot:0,debt:0,banked:0,score:0,wagered:0,rounds:0,rebuys:0,best:null,canAdvance:false,limits:{min:10,max:500000,start:1000000,advance:100000}};
+      let rev=0;
+      let table={phase:'waiting',round:0,dealer:[],dealerTotal:0,hole:false,seats:[],free:5,remaining:0,window:5000,seated:false,ready:false,canReady:false,canBet:true,actions:[]};
+      const card=(r,s)=>({r,s});
+      const answer=route=>route.fulfill({json:{user,table,rev}});
+      await p.route('**/api/me',route=>route.fulfill({json:{user,active:{}}}));
+      await p.route('**/api/table**',async route=>{
+        const path=new URL(route.request().url()).pathname;
+        if(route.request().method()==='GET') {await new Promise(resolve=>setTimeout(resolve,150));return answer(route);}
+        const body=route.request().postDataJSON();
+        if(path.endsWith('/bet')) {
+          check(body.bet===4000 && body.sideBets.pairs===500 && body.sideBets.trio===100,'chip/gauge commitments did not reach the server');
+          check(body.seat===undefined,'automatic rightmost seat was overridden');
+          user={...user,balance:995400,stake:995400};
+          table={...table,phase:'betting',free:4,seated:true,canReady:true,remaining:5000,seats:[{pos:4,name:user.name,you:true,turn:false,cards:[],hands:[],mainBet:4000,bet:4600,total:0,sideResults:[]}]};
+        } else if(path.endsWith('/ready')) {
+          const cards=[card('8','♠'),card('8','♥')];
+          table={...table,phase:'playing',canReady:false,canBet:false,hole:true,dealer:[card('10','♠')],dealerTotal:10,actions:['hit','stand','double','split'],seats:[{...table.seats[0],turn:true,cards,total:16,hands:[{cards,total:16,bet:4000,turn:true}],sideResults:[{kind:'pairs',bet:500,result:'mixed',payout:3500},{kind:'trio',bet:100,result:'lose',payout:0}]}]};
+        } else if(path.endsWith('/action') && body.action==='split') {
+          user={...user,balance:991400,stake:991400};
+          table={...table,actions:['hit','stand','double'],seats:[{...table.seats[0],cards:[card('8','♠'),card('3','♣')],total:11,bet:8600,hands:[{cards:[card('8','♠'),card('3','♣')],total:11,bet:4000,turn:true},{cards:[card('8','♥'),card('2','♦')],total:10,bet:4000,turn:false}]}]};
+        } else if(path.endsWith('/action') && body.action==='stand') {
+          table={...table,seats:[{...table.seats[0],hands:table.seats[0].hands.map((h,i)=>({...h,turn:i===1}))}]};
+        } else throw new Error('Unexpected blackjack fixture request');
+        rev++;return answer(route);
+      });
+      await ready(p,'/g/bjtable/');await p.locator('.tb-chip-rack').waitFor();
+      check(await p.locator('.tb-panel [data-act="split"]').isDisabled(),'split enabled before the deal');
+      await p.locator('[data-chip="2500"]').click();
+      await p.locator('[data-wager="pairs"]').click();await p.locator('[data-chip="500"]').click();
+      await p.locator('[data-wager="trio"]').click();await p.locator('[data-chip="100"]').click();
+      await p.locator('[data-wager="main"]').click();
+      await p.locator('#tb-bet-range').focus();await p.keyboard.press('End');
+      check(await p.locator('#bet-input').inputValue()==='5000.00','gauge did not update the credit amount');
+      await p.locator('#bet-input').fill('40');await p.locator('#bet-input').press('Tab');
+      check((await p.locator('.tb-bet-total b').innerText()).replace(/\s/g,'')==='46,00','side bets were not included in the displayed commitment');
+      await p.locator('.tb-panel .play').click();await p.locator('.tb-seat.you').waitFor();
+      await p.getByRole('button',{name:'Distribuer',exact:true}).click();
+      await p.waitForFunction(()=>!document.querySelector('[data-act="split"]').disabled);
+      await p.getByRole('button',{name:'Séparer',exact:true}).click();
+      await p.waitForFunction(()=>document.querySelectorAll('.tb-seat.you .tb-hand').length===2);
+      check(await p.locator('.tb-seat').count()===5,'split consumed an extra betting spot');
+      check(await p.locator('.tb-seat.you .tb-hand').first().locator('.pcard').count()===2,'first split hand was not redrawn');
+      check(await p.getByRole('button',{name:'Séparer',exact:true}).isDisabled(),'re-split stayed enabled');
+      await p.getByRole('button',{name:'Rester',exact:true}).click();
+      await p.waitForFunction(()=>document.querySelectorAll('.tb-hand')[1].classList.contains('active'));
+      for(const [width,height] of sizes)for(const colorScheme of ['light','dark']) {
+        await p.setViewportSize({width,height});await p.emulateMedia({colorScheme});
+        await audit(p,`${width} ${colorScheme} split blackjack and side bets`);
+        if(width===320 || width===390 || width===1366)await p.screenshot({path:`${output}/blackjack-split-${width}-${colorScheme}.png`,fullPage:true});
+        check(await p.locator('.tb-seat.you .cards').evaluateAll(lists=>lists.every(list=>{
+          const cards=[...list.children];return cards.every((card,i)=>{
+            if(!i)return true;const previous=cards[i-1];const range=document.createRange();range.selectNodeContents(previous.querySelector('b'));const rank=range.getBoundingClientRect();const next=card.getBoundingClientRect();
+            return rank.right<=next.left+1 || rank.bottom<=next.top+1;
+          });
+        })),`${width} ${colorScheme}: split cards cover the preceding card value`);
+        await menu(p);
+        const icon=p.locator('.sound:visible .control-icon');
+        check(await icon.count()===1,'sound button does not use one standard SVG');
+        check(await icon.evaluate(el=>el.tagName.toLowerCase()==='svg' && el.getAttribute('aria-hidden')==='true' && getComputedStyle(el).width==='18px' && getComputedStyle(el).backgroundColor==='rgba(0, 0, 0, 0)'),'control icon retained a tile or wrong size');
+        check(await p.locator('button img[src^="/art/ui/"]').count()===0,'raster tool images remain in buttons');
+        if(await p.locator('.burger').isVisible())await p.keyboard.press('Escape');
+      }
     } finally {await ctx.close();}
   });
   await scenario('repayment preview, confirmation and mobile dialog',async()=>{

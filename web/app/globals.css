@@ -157,19 +157,17 @@ button:disabled {
   vertical-align: -0.16em;
   user-select: none;
 }
-/* Les icônes de l'interface sont dessinées en blanc : hors d'une surface bleue, elles
-   tiennent sur une petite tuile bleue. */
-.ic.tile {
+/* Les actions ont des SVG monochromes ; aucun fond ni espacement négatif. */
+.control-icon {
   display: inline-block;
-  width: 1.5rem;
-  height: 1.5rem;
-  margin: -0.25rem 0.45rem -0.25rem -0.2rem;
-  padding: 0.15rem;
-  border-radius: 6px;
-  background: var(--sea);
-  object-fit: contain;
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+  color: currentColor;
   vertical-align: middle;
 }
+.btn:has(> .control-icon), .offline:has(> .control-icon) { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; }
+.who { display: inline-flex; align-items: center; gap: 0.4rem; }
 sup {
   font-size: 0.65em;
 }
@@ -3791,6 +3789,31 @@ select:focus-visible {
   gap: 0.25rem;
   align-items: end;
 }
+.tb-bets { min-width: 0; width: 100%; }
+.tb-wagers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; margin-bottom: 0.9rem; }
+.tb-wagers:has(> :only-child) { grid-template-columns: 1fr; }
+.tb-wagers button { display: grid; gap: 0.3rem; min-width: 0; padding: 0.7rem 0.35rem; border: 1px solid var(--field-line); border-radius: 10px; background: var(--surface); color: var(--ink); font-size: 0.75rem; line-height: 1.3; }
+.tb-wagers b { font-size: 0.9375rem; font-variant-numeric: tabular-nums; }
+.tb-wagers [aria-pressed='true'] { background: var(--sea); border-color: var(--sea); color: white; }
+.tb-chip-rack { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.45rem; margin-bottom: 0.85rem; }
+.tb-chip { display: grid; place-items: center; min-width: 0; min-height: 2.75rem; aspect-ratio: 1; padding: 0; border: 3px dashed var(--sea); border-radius: 50%; background: var(--surface); color: var(--ink); font: 800 0.85rem/1 var(--display); }
+.tb-chip[aria-pressed='true'] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--sea); }
+.tb-amount-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 0.5rem; align-items: center; font-size: 0.8rem; }
+.tb-amount-row input { width: 100%; min-width: 0; }
+#tb-bet-range { width: 100%; min-height: 2.75rem; padding: 0; border: 0; background: transparent; accent-color: var(--sea); }
+.tb-bet-total { display: flex; justify-content: space-between; gap: 0.5rem; padding-block: 0.7rem; border-block: 1px solid var(--line); font-size: 0.875rem; }
+.tb-bet-total b { font-variant-numeric: tabular-nums; }
+.tb-paytable { margin-top: 0.85rem; font-size: 0.8rem; color: var(--ink-soft); }
+.tb-paytable summary { cursor: pointer; color: var(--ink); font-weight: 700; }
+.tb-paytable p { margin-top: 0.6rem; }
+.tb-hands { display: grid; min-width: 0; max-width: 100%; gap: 0.5rem; }
+.tb-hands.has-split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tb-hand { min-width: 0; }
+.tb-hand.active .bj-total { background: var(--mint); color: var(--navy); }
+.tb-hands.has-split .cards .pcard { flex-shrink: 0; width: 2.4rem; height: 3.6rem; margin-left: -1.2rem; font-size: 0.85rem; }
+.tb-hands.has-split .cards .pcard:first-child { margin-left: 0; }
+.tb-side-results { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.2rem 0.4rem; font-size: 0.7rem; color: white; }
+.tb-side-results .won { color: var(--mint); }
 .tb-seat {
   display: flex;
   flex-direction: column;
@@ -3908,7 +3931,7 @@ button.tb-spot:focus-visible {
   animation: tbwin 0.5s ease-out;
 }
 .tb-seat.lose {
-  opacity: 0.6;
+  opacity: 1;
 }
 @keyframes chipin {
   from {
@@ -4636,18 +4659,22 @@ button.tb-spot:focus-visible {
   .tb-stage .croupier {
     width: 5.5rem;
   }
-  /* Cinq secondes pour jouer : quand c'est son tour, les trois actions tiennent au bas de
+  /* Cinq secondes pour jouer : quand c'est son tour, les quatre actions tiennent au bas de
      l'écran, sous le pouce, sans avoir à descendre jusqu'aux réglages. */
   .tb-panel.turn .bj-actions {
     position: fixed;
     inset: auto 0 0;
     z-index: 15;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     margin: 0;
     padding: 0.6rem 1rem calc(0.6rem + env(safe-area-inset-bottom));
     border-top: 1px solid var(--line);
     background: var(--surface);
   }
+  .tb-hands.has-split { grid-template-columns: 1fr; }
+  .tb-hands.has-split .cards { display: grid; grid-auto-rows: 1.3rem; justify-items: center; min-height: 0; padding-bottom: 2.3rem; }
+  .tb-hands.has-split .cards .pcard { grid-column: 1; margin-left: 0; }
+  .tb-hands.has-split .cards .pcard span { position: absolute; top: 0.25rem; right: 0.3rem; margin-top: 0; font-size: 0.8rem; }
   .steps,
   .lead {
     grid-template-columns: minmax(0, 1fr);

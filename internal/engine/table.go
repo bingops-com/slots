@@ -26,16 +26,20 @@ const (
 )
 
 type TableSeat struct {
-	Pos       int // which of the five places, from the dealer's left; hands are played in that order
-	UserID    string
-	Name      string
-	Cards     []Card
-	Bet       int64
-	FromStake int64 // how much of the bet came out of the grant, to refund it exactly
-	Done      bool
-	Doubled   bool
-	Result    string
-	Payout    int64
+	Pos         int // screen position: 0 left, 4 right; played from right to left
+	UserID      string
+	Name        string
+	Cards       []Card
+	Bet         int64
+	FromStake   int64 // how much of the bet came out of the grant, to refund it exactly
+	Done        bool
+	Doubled     bool
+	Result      string
+	Payout      int64
+	Split       *TableSeat // a second hand at the same place, never another betting spot
+	SplitHand   bool
+	SideBets    TableSideBets
+	SideResults []TableSideResult
 }
 
 type Table struct {
@@ -43,6 +47,7 @@ type Table struct {
 	Dealer   []Card
 	Seats    []*TableSeat
 	Turn     int
+	Hand     int // first or split hand at the current place
 	Deadline int64
 	Round    int64
 	// Present is when each signed-in player last looked at the table: the deal
@@ -60,15 +65,23 @@ type TableResult struct {
 }
 
 type TableSeatView struct {
-	Pos    int    `json:"pos"`
-	Name   string `json:"name"`
-	Cards  []Card `json:"cards"`
-	Total  int    `json:"total"`
-	Bet    int64  `json:"bet"`
-	Result string `json:"result,omitempty"`
-	Payout *int64 `json:"payout,omitempty"`
-	You    bool   `json:"you,omitempty"`
-	Turn   bool   `json:"turn,omitempty"`
+	Pos         int               `json:"pos"`
+	Name        string            `json:"name"`
+	Cards       []Card            `json:"cards"`
+	Total       int               `json:"total"`
+	Bet         int64             `json:"bet"`
+	Result      string            `json:"result,omitempty"`
+	Payout      *int64            `json:"payout,omitempty"`
+	You         bool              `json:"you,omitempty"`
+	Turn        bool              `json:"turn,omitempty"`
+	MainBet     int64             `json:"mainBet"`
+	Hands       []TableHandView   `json:"hands"`
+	SideResults []TableSideResult `json:"sideResults"`
+}
+
+type TableHandView struct {
+	BlackjackHandView
+	Turn bool `json:"turn,omitempty"`
 }
 
 type TableView struct {
@@ -126,9 +139,11 @@ func (t *Table) SetReady(userID string, now int64) {
 func (t *Table) Stamp() string {
 	cards := len(t.Dealer)
 	for _, s := range t.Seats {
-		cards += len(s.Cards)
+		for _, h := range s.hands() {
+			cards += len(h.Cards)
+		}
 	}
-	return fmt.Sprintf("%s/%d/%d/%d/%d/%d", t.Phase, t.Round, t.Turn, t.Deadline, len(t.Seats), cards)
+	return fmt.Sprintf("%s/%d/%d/%d/%d/%d/%d", t.Phase, t.Round, t.Turn, t.Hand, t.Deadline, len(t.Seats), cards)
 }
 
 func (t *Table) seat(userID string) *TableSeat {
@@ -153,8 +168,8 @@ func (t *Table) place(pos int) int {
 		}
 		return pos
 	}
-	for i, used := range taken {
-		if !used {
+	for i := TableSeats - 1; i >= 0; i-- {
+		if !taken[i] {
 			return i
 		}
 	}
@@ -185,9 +200,13 @@ func (t *Table) CanBet(userID string, amount int64, pos int) error {
 // Bet seats the player at a place accepted by CanBet. The first bet opens the
 // window for the others.
 func (t *Table) Bet(userID, name string, amount, fromStake int64, pos int, now int64) {
-	seat := &TableSeat{Pos: t.place(pos), UserID: userID, Name: name, Bet: amount, FromStake: fromStake, Cards: []Card{}}
+	t.BetWithSides(userID, name, amount, fromStake, TableSideBets{}, pos, now)
+}
+
+func (t *Table) BetWithSides(userID, name string, amount, fromStake int64, sides TableSideBets, pos int, now int64) {
+	seat := &TableSeat{Pos: t.place(pos), UserID: userID, Name: name, Bet: amount, FromStake: fromStake, Cards: []Card{}, SideBets: sides, SideResults: []TableSideResult{}}
 	at := 0
-	for at < len(t.Seats) && t.Seats[at].Pos < seat.Pos {
+	for at < len(t.Seats) && t.Seats[at].Pos > seat.Pos {
 		at++
 	}
 	t.Seats = append(t.Seats[:at], append([]*TableSeat{seat}, t.Seats[at:]...)...)
@@ -205,6 +224,9 @@ func (t *Table) current() *TableSeat {
 	if t.Phase != "playing" || t.Turn >= len(t.Seats) {
 		return nil
 	}
+	if t.Hand == 1 {
+		return t.Seats[t.Turn].Split
+	}
 	return t.Seats[t.Turn]
 }
 
@@ -214,7 +236,11 @@ func (t *Table) allowed(userID string) []string {
 		return []string{}
 	}
 	if len(s.Cards) == 2 {
-		return []string{"hit", "stand", "double"}
+		actions := []string{"hit", "stand", "double"}
+		if !s.SplitHand && s.Cards[0].value() == s.Cards[1].value() {
+			actions = append(actions, "split")
+		}
+		return actions
 	}
 	return []string{"hit", "stand"}
 }
@@ -224,7 +250,7 @@ func (t *Table) allowed(userID string) []string {
 func (t *Table) CanAct(userID, action string) (extra int64, err error) {
 	for _, a := range t.allowed(userID) {
 		if a == action {
-			if action == "double" {
+			if action == "double" || action == "split" {
 				return t.current().Bet, nil
 			}
 			return 0, nil
@@ -249,6 +275,15 @@ func (t *Table) Act(rng Source, action string, extraFromStake, now int64) []Tabl
 		s.Doubled = true
 		s.Cards = append(s.Cards, bjDraw(rng))
 		s.Done = true
+	case "split":
+		second := &TableSeat{Pos: s.Pos, UserID: s.UserID, Name: s.Name, Bet: s.Bet, FromStake: extraFromStake, SplitHand: true}
+		first, other := s.Cards[0], s.Cards[1]
+		s.Split, s.SplitHand = second, true
+		s.Cards = []Card{first, bjDraw(rng)}
+		second.Cards = []Card{other, bjDraw(rng)}
+		// Split aces receive one card each; split 21 is an ordinary winning hand.
+		s.Done = first.R == "A" || bjTotal(s.Cards) >= 21
+		second.Done = first.R == "A" || bjTotal(second.Cards) >= 21
 	}
 	t.Deadline = now + tableTurnTime
 	if s.Done {
@@ -259,8 +294,13 @@ func (t *Table) Act(rng Source, action string, extraFromStake, now int64) []Tabl
 
 // next gives the turn to the next hand still to play, or ends the deal.
 func (t *Table) next(rng Source, now int64) []TableResult {
-	for t.Turn < len(t.Seats) && t.Seats[t.Turn].Done {
-		t.Turn++
+	for t.Turn < len(t.Seats) && t.current().Done {
+		if t.Hand == 0 && t.Seats[t.Turn].Split != nil {
+			t.Hand = 1
+		} else {
+			t.Turn++
+			t.Hand = 0
+		}
 	}
 	if t.Turn < len(t.Seats) {
 		t.Deadline = now + tableTurnTime
@@ -272,10 +312,20 @@ func (t *Table) next(rng Source, now int64) []TableResult {
 func (t *Table) deal(rng Source, now int64) []TableResult {
 	t.Phase = "playing"
 	t.Turn = 0
-	t.Dealer = []Card{bjDraw(rng), bjDraw(rng)}
+	t.Hand = 0
+	t.Dealer = []Card{}
 	for _, s := range t.Seats {
-		s.Cards = []Card{bjDraw(rng), bjDraw(rng)}
+		s.Cards = []Card{}
+	}
+	for range 2 {
+		for _, s := range t.Seats {
+			s.Cards = append(s.Cards, bjDraw(rng))
+		}
+		t.Dealer = append(t.Dealer, bjDraw(rng))
+	}
+	for _, s := range t.Seats {
 		s.Done = bjNatural(s.Cards)
+		s.sideResults(t.Dealer[0])
 	}
 	// A dealer's blackjack ends the deal before anyone plays.
 	if bjNatural(t.Dealer) {
@@ -291,8 +341,10 @@ func (t *Table) deal(rng Source, now int64) []TableResult {
 func (t *Table) finish(rng Source, now int64) []TableResult {
 	live := false
 	for _, s := range t.Seats {
-		if bjTotal(s.Cards) <= 21 && !bjNatural(s.Cards) {
-			live = true
+		for _, h := range s.hands() {
+			if bjTotal(h.Cards) <= 21 && (!bjNatural(h.Cards) || h.SplitHand) {
+				live = true
+			}
 		}
 	}
 	if live {
@@ -303,24 +355,30 @@ func (t *Table) finish(rng Source, now int64) []TableResult {
 	d, dealerBJ := bjTotal(t.Dealer), bjNatural(t.Dealer)
 	results := make([]TableResult, 0, len(t.Seats))
 	for _, s := range t.Seats {
-		p := bjTotal(s.Cards)
-		natural := bjNatural(s.Cards) && !s.Doubled
-		mult := 0.0
-		s.Result = "lose"
-		switch {
-		case p > 21:
-		case natural && dealerBJ:
-			mult, s.Result = 1, "push"
-		case natural:
-			mult, s.Result = 2.5, "blackjack"
-		case dealerBJ:
-		case d > 21 || p > d:
-			mult, s.Result = 2, "win"
-		case p == d:
-			mult, s.Result = 1, "push"
+		for _, h := range s.hands() {
+			p := bjTotal(h.Cards)
+			natural := bjNatural(h.Cards) && !h.Doubled && !h.SplitHand
+			mult := 0.0
+			h.Result = "lose"
+			switch {
+			case p > 21:
+			case natural && dealerBJ:
+				mult, h.Result = 1, "push"
+			case natural:
+				mult, h.Result = 2.5, "blackjack"
+			case dealerBJ:
+			case d > 21 || p > d:
+				mult, h.Result = 2, "win"
+			case p == d:
+				mult, h.Result = 1, "push"
+			}
+			h.Payout = int64(math.Round(float64(h.Bet) * mult))
+			payout := h.Payout
+			for _, side := range h.SideResults {
+				payout += side.Payout
+			}
+			results = append(results, TableResult{UserID: h.UserID, Wagered: h.Committed(), Payout: payout})
 		}
-		s.Payout = int64(math.Round(float64(s.Bet) * mult))
-		results = append(results, TableResult{UserID: s.UserID, Wagered: s.Bet, Payout: s.Payout})
 	}
 	t.Phase = "done"
 	t.Turn = len(t.Seats)
@@ -357,7 +415,11 @@ func (t *Table) Tick(rng Source, now int64) []TableResult {
 // Pending lists the bets not settled yet, to refund them if the table closes.
 func (t *Table) Pending() []*TableSeat {
 	if t.Phase == "betting" || t.Phase == "playing" {
-		return t.Seats
+		pending := []*TableSeat{}
+		for _, seat := range t.Seats {
+			pending = append(pending, seat.hands()...)
+		}
+		return pending
 	}
 	return nil
 }
@@ -384,8 +446,33 @@ func (t *Table) View(userID string, now int64) TableView {
 	v.CanBet = userID != "" && !v.Ready && v.Free > 0 && (t.Phase == "waiting" || t.Phase == "betting")
 	for i, s := range t.Seats {
 		sv := TableSeatView{Pos: s.Pos, Name: s.Name, Cards: s.Cards, Total: bjTotal(s.Cards), Bet: s.Bet, Result: s.Result, You: s.UserID == userID, Turn: t.Phase == "playing" && i == t.Turn}
+		sv.MainBet = s.Bet
+		sv.SideResults = s.SideResults
+		sv.Bet = 0
+		totalPayout := int64(0)
+		for j, h := range s.hands() {
+			hv := TableHandView{BlackjackHandView: BlackjackHandView{Cards: h.Cards, Bet: h.Bet, Total: bjTotal(h.Cards), Result: h.Result}, Turn: sv.Turn && j == t.Hand}
+			if done {
+				p := h.Payout
+				hv.Payout = &p
+			}
+			sv.Hands = append(sv.Hands, hv)
+			sv.Bet += h.Committed()
+			totalPayout += h.Payout
+		}
+		for _, side := range s.SideResults {
+			totalPayout += side.Payout
+		}
+		if done && s.Split != nil {
+			sv.Result = "lose"
+			if totalPayout > sv.Bet {
+				sv.Result = "win"
+			} else if totalPayout == sv.Bet {
+				sv.Result = "push"
+			}
+		}
 		if done {
-			p := s.Payout
+			p := totalPayout
 			sv.Payout = &p
 		}
 		v.Seats = append(v.Seats, sv)

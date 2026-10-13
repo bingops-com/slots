@@ -517,7 +517,7 @@ func TestTablePlaces(t *testing.T) {
 	for _, s := range tb.Seats {
 		got += fmt.Sprintf("%s%d ", s.UserID, s.Pos)
 	}
-	if got != "c0 b1 a3 " {
+	if got != "c4 a3 b1 " {
 		t.Fatalf("places: %s", got)
 	}
 }
