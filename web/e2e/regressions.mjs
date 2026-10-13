@@ -111,6 +111,43 @@ try {
       check((await p.locator('#d-result').innerText()).length>0,'offline practice produced no roll');
     } finally {await ctx.close();}
   });
+  await scenario('repayment preview, confirmation and mobile dialog',async()=>{
+    for(const [width,height] of sizes)for(const colorScheme of ['light','dark']) {
+      const ctx=await context({viewport:{width,height},colorScheme});const p=await ctx.newPage();
+      try {
+        // Browser-only HTTP fixtures. Atomicity, session/origin checks and the
+        // real database are covered by TestRepaymentAPIAndConcurrentRequests.
+        let paid=false, requests=0;
+        const before={name:'RepaymentDemo',balance:200000,stake:0,loot:200000,debt:100000,banked:0,score:100000,wagered:100,rounds:1,rebuys:1,best:null,canAdvance:false,limits:{min:10,max:500000,start:1000000,advance:100000}};
+        const after={...before,balance:187500,loot:187500,debt:87500,banked:12500,score:112500};
+        await ctx.addInitScript(()=>localStorage.setItem('slots.signed','1'));
+        await p.route('**/api/me',route=>route.fulfill({json:{user:paid?after:before,active:{}}}));
+        await p.route('**/api/repay',async route=>{
+          check(route.request().method()==='POST','repayment was not a POST');
+          check(route.request().postDataJSON().amount===12500,'decimal credits were not converted to integer cents');
+          requests++;paid=true;await route.fulfill({json:{user:after,repaid:12500}});
+        });
+        await ready(p,'/g/dice/');await menu(p);
+        await p.getByRole('button',{name:'Rembourser',exact:true}).filter({visible:true}).click();
+        const dialog=p.getByRole('dialog',{name:'Rembourser sa dette'});await dialog.waitFor();
+        const field=dialog.getByRole('textbox',{name:'Montant à rembourser'});
+        await field.fill('1000,01');check(await dialog.getByRole('button',{name:'Confirmer le remboursement',exact:true}).isDisabled(),'repayment above debt accepted');
+        await field.fill('125,00');
+        check((await dialog.locator('[data-testid="repay-after-balance"]').innerText()).replace(/\s/g,'')==='1875,00','balance preview is wrong');
+        check((await dialog.locator('[data-testid="repay-after-score"]').innerText()).replace(/\s/g,'')==='1125,00','score preview is wrong');
+        await audit(p,`${width} ${colorScheme} repayment dialog`);
+        await p.keyboard.press('Escape');await dialog.waitFor({state:'detached'});check(requests===0,'cancelling repaid money');
+        await menu(p);await p.getByRole('button',{name:'Rembourser',exact:true}).filter({visible:true}).click();
+        await dialog.getByRole('textbox',{name:'Montant à rembourser'}).fill('125.00');
+        await dialog.getByRole('button',{name:'Confirmer le remboursement',exact:true}).click();
+        await dialog.waitFor({state:'detached'});check(requests===1,'repayment was submitted more than once');
+        await p.reload();await menu(p);await p.getByRole('button',{name:'Rembourser',exact:true}).filter({visible:true}).click();
+        check((await dialog.locator('[data-testid="repay-debt"]').innerText()).replace(/\s/g,'')==='875,00','debt was not refreshed after reload');
+        await dialog.getByRole('button',{name:'Fermer la fenêtre',exact:true}).click();
+        await dialog.waitFor({state:'detached'});
+      } finally {await ctx.close();}
+    }
+  });
 } finally {
   await browser.close();writeFileSync(`${output}/report.json`,JSON.stringify(report,null,2));
 }

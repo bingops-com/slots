@@ -144,6 +144,7 @@ export default function Board() {
           <p>Chaque joueur reçoit 10 000 crédits de dotation, au début de la saison ou le jour où il arrive.</p>
           <p>La dotation ne vaut rien tant qu&apos;elle n&apos;est pas misée. Ce que vos mises rapportent devient votre butin, et le butin est votre score.</p>
           <p>À sec, une avance de 1 000 crédits permet de rejouer. Elle est retirée du score.</p>
+          <p>Rembourser sa dette retire les crédits du solde et augmente le score du même montant. Le remboursement est limité à la dette restante.</p>
           <h2>Gros gains récents</h2>
           <ul className="feed" id="feed">
             {feed.map((f) => (

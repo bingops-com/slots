@@ -14,6 +14,14 @@ const DICT: Record<string, string> = {
   Accueil: 'Home', Classement: 'Leaderboard', 'Machines à sous': 'Slots', 'Jeux de table': 'Table games', 'En ligne, à plusieurs': 'Online, multiplayer',
   Jeux: 'Games', Menu: 'Menu', Classé: 'Ranked', Entraînement: 'Practice', 'Hors ligne, réessayer': 'Offline, retry',
   'À miser': 'To play', 'Remettre à 10 000': 'Reset to 10,000', 'Demander une avance': 'Ask for an advance',
+  Rembourser: 'Repay', 'Rembourser sa dette': 'Repay your debt',
+  'Chaque crédit remboursé quitte votre solde, réduit votre dette et ajoute un point à votre score.': 'Each repaid credit leaves your balance, reduces your debt and adds one point to your score.',
+  'Solde disponible': 'Available balance', 'Dette restante': 'Remaining debt', 'Montant à rembourser': 'Amount to repay',
+  'Maximum remboursable': 'Maximum repayment', 'Rembourser le maximum': 'Repay the maximum',
+  'Solde après remboursement': 'Balance after repayment', 'Dette après remboursement': 'Debt after repayment', 'Score après remboursement': 'Score after repayment',
+  'Confirmer le remboursement': 'Confirm repayment', 'Remboursement en cours…': 'Repayment in progress…', Annuler: 'Cancel',
+  'Remboursement effectué. Votre score est à jour.': 'Repayment completed. Your score is up to date.',
+  'Montant de remboursement invalide': 'Invalid repayment amount', 'Le remboursement dépasse la dette restante': 'The repayment exceeds the remaining debt', 'Score maximum atteint': 'Maximum score reached',
   'Son activé': 'Sound on', 'Son coupé': 'Sound off', 'Se connecter': 'Log in', 'Se déconnecter': 'Log out', 'Créer un compte': 'Create an account',
   'Créer le compte': 'Create the account', "J'ai déjà un compte": 'I already have an account', Pseudo: 'Username', 'Mot de passe': 'Password',
   'Vous recevez 10 000 crédits fictifs à jouer, comme chaque joueur de la saison. Aucun argent réel.': 'You get 10,000 fictional credits to play with, like every player of the season. No real money.',
@@ -51,6 +59,7 @@ const DICT: Record<string, string> = {
   "La dotation ne vaut rien tant qu'elle n'est pas misée. Ce que vos mises rapportent devient votre butin, et le butin est votre score.":
     'The grant is worth nothing until it is played. What your bets bring in becomes your loot, and the loot is your score.',
   'À sec, une avance de 1 000 crédits permet de rejouer. Elle est retirée du score.': 'When you are out, an advance of 1,000 credits lets you play on. It is taken off the score.',
+  'Rembourser sa dette retire les crédits du solde et augmente le score du même montant. Le remboursement est limité à la dette restante.': 'Repaying your debt takes credits from your balance and increases your score by the same amount. Repayment is limited to the remaining debt.',
   'Gros gains récents': 'Recent big wins', "Aucun gain de plus de dix fois la mise pour l'instant.": 'No win above ten times the bet yet.',
   // ----- page de jeu -----
   'Plein écran': 'Full screen', 'Quitter le plein écran': 'Leave full screen',

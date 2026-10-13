@@ -47,5 +47,5 @@ export function engine(): Promise<SlotsEngine> {
 
 // Actions jouées sur place à l'entraînement ; les mêmes noms que les routes du serveur.
 export const ACTIONS = new Set([
-  'dice', 'roulette', 'slots/bass', 'slots/beard', 'slots/bounty', 'slots/neptune', 'slots/reef', 'slots/dogs', 'blackjack/start', 'blackjack/action', 'mines/start', 'mines/reveal', 'mines/cashout', 'crash/start', 'crash/poll', 'crash/cashout', 'plinko', 'advance',
+  'dice', 'roulette', 'slots/bass', 'slots/beard', 'slots/bounty', 'slots/neptune', 'slots/reef', 'slots/dogs', 'blackjack/start', 'blackjack/action', 'mines/start', 'mines/reveal', 'mines/cashout', 'crash/start', 'crash/poll', 'crash/cashout', 'plinko', 'advance', 'repay',
 ]);

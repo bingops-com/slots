@@ -14,7 +14,7 @@ func seeded(seed uint64) Source {
 }
 
 // Every action keeps the books straight: what leaves the balance is what was
-// wagered, what enters it is what was paid, and the score is loot minus debt.
+// wagered or repaid, and what enters it is what was paid or advanced.
 func TestWalletInvariants(t *testing.T) {
 	clock := int64(1_000_000)
 	e := &Engine{Rng: seeded(1), Now: func() int64 { return clock }}
@@ -38,6 +38,7 @@ func TestWalletInvariants(t *testing.T) {
 		"plinko":           {`{"bet":100,"rows":8,"risk":"low"}`, `{"bet":100,"rows":16,"risk":"high"}`, `{"bet":100,"rows":12,"risk":"medium"}`},
 		"crash/cashout":    {``},
 		"advance":          {``},
+		"repay":            {`{"amount":100}`, `{"amount":100000}`},
 	}
 	r := rand.New(rand.NewPCG(2, 3))
 	for i := range 200_000 {

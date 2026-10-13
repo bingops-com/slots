@@ -79,9 +79,30 @@ deux langues. Les nombres gardent l'écriture française.
 Chaque joueur reçoit 10 000 crédits de dotation, au début de la saison ou le jour
 où il arrive. La dotation ne vaut rien tant qu'elle n'est pas misée : une mise
 l'entame d'abord, et ce que les mises rapportent devient le butin. Le score est
-le butin moins les avances reçues (1 000 crédits proposés quand il ne reste plus
-rien à miser). Ne pas jouer rapporte donc zéro, et une avance ne fait jamais
-remonter.
+le butin plus les points conservés lors des remboursements, moins la dette
+restante (1 000 crédits proposés quand il ne reste plus rien à miser). Ne pas
+jouer rapporte donc zéro, et une avance ne fait jamais remonter.
+
+Le bouton **Rembourser** du compte permet de convertir le solde disponible en
+score, dans la limite de la dette restante : un remboursement de 100 crédits
+retire 100 du solde et de la dette et ajoute 100 au score. Le montant peut être
+partiel ; une prévisualisation montre le solde, la dette et le score résultants
+avant confirmation. Les mises déjà engagées restent dans leurs parties.
+
+Les remboursements débitent d'abord la dotation, puis le butin, comme les mises.
+Le butin dépensé pour rembourser est conservé dans `wallet.banked` et ne peut plus
+être misé. Le score devient `butin + points conservés − dette restante`.
+Rembourser une avance intacte annule seulement la pénalité de cette avance :
+répéter emprunt/remboursement sans jouer ne crée aucun point. Les anciennes
+données ont zéro point conservé ; aucune migration SQL n'est requise, y compris
+avec les comptes communs. Une nouvelle saison remet aussi les points conservés
+à zéro. Une ancienne version ne connaît pas `banked` : après les premiers
+remboursements, ne pas revenir à un ancien moteur sans préserver cette donnée.
+
+`POST /api/repay` accepte un `amount` entier positif en centièmes de crédit. Le
+serveur vérifie la session et l'origine, puis valide et applique le remboursement
+dans la transaction verrouillant le portefeuille. Aucun remboursement ne compte
+comme manche, mise ou gain de jeu ; le classement général est mis à jour.
 
 Trois classements de saison (score, plus gros multiplicateur, total misé) et un
 tableau par jeu : le plus gros gain de chaque joueur, en fois la mise, affiché à

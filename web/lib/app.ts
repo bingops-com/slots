@@ -14,6 +14,7 @@ export interface Wallet {
   stake: number;
   loot: number;
   debt: number;
+  banked: number;
   score: number;
   wagered: number;
   rounds: number;
@@ -40,7 +41,7 @@ export interface State {
   turbo: boolean;
   sound: boolean;
   lang: Lang;
-  modal: 'login' | 'register' | null;
+  modal: 'login' | 'register' | 'repay' | null;
   toasts: Toast[];
   epoch: number; // change quand la scène affichée doit repartir de zéro
 }
@@ -211,6 +212,13 @@ export const App = {
     } catch (e) {
       App.toast((e as Error).message);
     }
+  },
+
+  async repay(amount: number) {
+    const response = await App.api('/api/repay', { amount });
+    App.setUser(response.user);
+    App.openModal(null);
+    App.toast('Remboursement effectué. Votre score est à jour.', 'ok');
   },
 
   resetPractice() {
