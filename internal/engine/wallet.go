@@ -8,7 +8,7 @@ import (
 // How points are shared out: every player gets the same grant at the start of
 // a season, whatever the day they arrive. The grant is worth nothing on the
 // leaderboard until it is played; every payout falls into the loot, and the
-// score is the loot minus the advances received. Not playing therefore earns
+// score is the loot plus banked repayments minus the outstanding debt. Not playing earns
 // zero, and an advance never moves a player up.
 const (
 	StartStake   = 1_000_000
@@ -29,6 +29,7 @@ type Wallet struct {
 	Stake   int64      `json:"stake"`
 	Loot    int64      `json:"loot"`
 	Debt    int64      `json:"debt"`
+	Banked  int64      `json:"banked,omitempty"` // spent loot retained in the score after repayment
 	Wagered int64      `json:"wagered"`
 	Won     int64      `json:"won"`
 	Rounds  int64      `json:"rounds"`
@@ -42,7 +43,7 @@ type Wallet struct {
 func NewWallet() *Wallet { return &Wallet{Stake: StartStake} }
 
 func (w *Wallet) Balance() int64 { return w.Stake + w.Loot }
-func (w *Wallet) Score() int64   { return w.Loot - w.Debt }
+func (w *Wallet) Score() int64   { return w.Loot - w.Debt + w.Banked }
 
 func (w *Wallet) canAdvance() bool {
 	return w.Balance() < advanceBelow && w.BJ == nil && w.Mines == nil
@@ -61,6 +62,7 @@ type View struct {
 	Stake      int64  `json:"stake"`
 	Loot       int64  `json:"loot"`
 	Debt       int64  `json:"debt"`
+	Banked     int64  `json:"banked"`
 	Score      int64  `json:"score"`
 	Wagered    int64  `json:"wagered"`
 	Rounds     int64  `json:"rounds"`
@@ -72,7 +74,7 @@ type View struct {
 
 func (w *Wallet) View() View {
 	return View{
-		Balance: w.Balance(), Stake: w.Stake, Loot: w.Loot, Debt: w.Debt, Score: w.Score(),
+		Balance: w.Balance(), Stake: w.Stake, Loot: w.Loot, Debt: w.Debt, Banked: w.Banked, Score: w.Score(),
 		Wagered: w.Wagered, Rounds: w.Rounds, Rebuys: w.Rebuys, Best: w.Best, CanAdvance: w.canAdvance(),
 		Limits: Limits{Min: minBet, Max: maxBet, Start: StartStake, Advance: advance},
 	}
@@ -131,10 +133,11 @@ type Engine struct {
 var Actions = []string{
 	"dice", "roulette", "slots/bass", "slots/beard", "slots/bounty", "slots/neptune", "slots/reef", "slots/dogs",
 	"blackjack/start", "blackjack/action", "mines/start", "mines/reveal", "mines/cashout",
-	"crash/start", "crash/poll", "crash/cashout", "plinko", "advance",
+	"crash/start", "crash/poll", "crash/cashout", "plinko", "advance", "repay",
 }
 
 type request struct {
+	Amount *int64        `json:"amount"`
 	Bet    *int64        `json:"bet"`
 	Target *float64      `json:"target"`
 	Over   bool          `json:"over"`
@@ -497,6 +500,31 @@ func (e *Engine) Do(w *Wallet, action string, body []byte) (any, error) {
 			return *out, nil
 		}
 		return e.crashEnd(w, w.Crash.multiplier(e.now())), nil
+
+	case "repay":
+		if req.Amount == nil || *req.Amount <= 0 {
+			return nil, Error("Montant de remboursement invalide")
+		}
+		amount := *req.Amount
+		if amount > w.Debt {
+			return nil, Error("Le remboursement dépasse la dette restante")
+		}
+		if amount > w.Balance() {
+			return nil, Error("Solde insuffisant")
+		}
+		// The grant is spent first, as for bets. Only spent loot needs banking:
+		// reducing debt already restores the points lost when the grant was lent.
+		// Thus an untouched advance repaid immediately creates no score.
+		fromLoot := amount - min(w.Stake, amount)
+		if w.Banked > math.MaxInt64-fromLoot || w.Score() > math.MaxInt64-amount {
+			return nil, Error("Score maximum atteint")
+		}
+		_ = w.debit(amount)
+		w.Debt -= amount
+		w.Banked += fromLoot
+		return struct {
+			Repaid int64 `json:"repaid"`
+		}{amount}, nil
 
 	case "advance":
 		// An advance when everything is lost: it lets the player go on but is

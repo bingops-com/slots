@@ -120,6 +120,7 @@ function Tools() {
         <Tile name="globe" />
         {s.lang === 'fr' ? 'English' : 'Français'}
       </button>
+      {s.account && !s.practice && s.account.debt > 0 && <button className="btn quiet small" onClick={() => App.openModal('repay')}>Rembourser</button>}
       <div className="account">
         {s.account ? (
           <>
@@ -141,10 +142,11 @@ function Tools() {
 
 function AuthModal() {
   const { modal, lang } = useApp();
+  const authModal = modal === 'repay' ? null : modal;
   const first = useRef<HTMLInputElement>(null);
   const box = useRef<HTMLDialogElement>(null);
   useEffect(() => {
-    if (!modal) return;
+    if (!authModal) return;
     const previous = document.activeElement as HTMLElement | null;
     const dialog = box.current!;
     dialog.showModal();
@@ -154,14 +156,14 @@ function AuthModal() {
       if (previous?.isConnected && previous.getClientRects().length) previous.focus();
       else document.querySelector<HTMLButtonElement>('.burger')?.focus();
     };
-  }, [modal]);
-  if (!modal) return null;
-  const register = modal === 'register';
+  }, [authModal]);
+  if (!authModal) return null;
+  const register = authModal === 'register';
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     try {
-      await App.sign(modal, String(f.get('name')), String(f.get('password')));
+      await App.sign(authModal, String(f.get('name')), String(f.get('password')));
     } catch (err) {
       App.toast((err as Error).message);
     }
@@ -191,6 +193,66 @@ function AuthModal() {
         <button type="button" className="btn quiet switch" onClick={() => App.openModal(register ? 'login' : 'register')}>
           {register ? "J'ai déjà un compte" : 'Créer un compte'}
         </button>
+      </form>
+    </dialog>
+  );
+}
+
+function RepaymentDialog() {
+  const { user, lang } = useApp();
+  const box = useRef<HTMLDialogElement>(null);
+  const first = useRef<HTMLInputElement>(null);
+  const maximum = Math.max(0, Math.min(user?.balance ?? 0, user?.debt ?? 0));
+  const [amount, setAmount] = useState((maximum / 100).toFixed(2));
+  const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
+  const close = () => App.openModal(null);
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    const dialog = box.current!;
+    dialog.showModal();
+    first.current?.focus();
+    first.current?.select();
+    return () => {
+      dialog.close();
+      if (opener?.isConnected && opener.getClientRects().length) opener.focus();
+      else document.querySelector<HTMLButtonElement>('.burger')?.focus();
+    };
+  }, []);
+  const parts = amount.replace(',', '.').split('.');
+  const cents = /^\d+(?:[.,]\d{1,2})?$/.test(amount) ? Number(parts[0]) * 100 + Number((parts[1] ?? '').padEnd(2, '0')) : NaN;
+  const valid = Number.isSafeInteger(cents) && cents > 0 && cents <= maximum;
+  const paid = valid ? cents : 0;
+  const submit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!valid || submitting.current) return;
+    submitting.current = true;
+    setBusy(true);
+    try { await App.repay(cents); }
+    catch (error) { App.toast((error as Error).message); }
+    finally { submitting.current = false; setBusy(false); }
+  };
+  return (
+    <dialog ref={box} className="modal" aria-labelledby="repay-title" onCancel={(e) => { e.preventDefault(); close(); }} onClick={(e) => e.target === e.currentTarget && close()}>
+      <form className="dialog repay-dialog" onSubmit={submit}>
+        <button type="button" className="dialog-close" aria-label={lang === 'en' ? 'Close dialog' : 'Fermer la fenêtre'} onClick={close}>×</button>
+        <h2 id="repay-title">Rembourser sa dette</h2>
+        <p>Chaque crédit remboursé quitte votre solde, réduit votre dette et ajoute un point à votre score.</p>
+        <dl className="repay-summary">
+          <div><dt>Solde disponible</dt><dd data-testid="repay-balance">{App.fmt(user?.balance ?? 0)}</dd></div>
+          <div><dt>Dette restante</dt><dd data-testid="repay-debt">{App.fmt(user?.debt ?? 0)}</dd></div>
+        </dl>
+        <label htmlFor="repay-amount">Montant à rembourser</label>
+        <input ref={first} id="repay-amount" name="amount" inputMode="decimal" autoComplete="off" required value={amount} onChange={(e) => setAmount(e.target.value)} aria-describedby="repay-help" aria-invalid={amount !== '' && !valid} />
+        <p id="repay-help"><span>Maximum remboursable</span> : <b>{App.fmt(maximum)}</b></p>
+        <button type="button" className="btn quiet small" disabled={busy || maximum === 0} onClick={() => setAmount((maximum / 100).toFixed(2))}>Rembourser le maximum</button>
+        <dl className="repay-summary" aria-live="polite">
+          <div><dt>Solde après remboursement</dt><dd data-testid="repay-after-balance">{App.fmt((user?.balance ?? 0) - paid)}</dd></div>
+          <div><dt>Dette après remboursement</dt><dd data-testid="repay-after-debt">{App.fmt((user?.debt ?? 0) - paid)}</dd></div>
+          <div><dt>Score après remboursement</dt><dd data-testid="repay-after-score">{App.fmt((user?.score ?? 0) + paid)}</dd></div>
+        </dl>
+        <button className="btn primary" disabled={!valid || busy}>{busy ? 'Remboursement en cours…' : 'Confirmer le remboursement'}</button>
+        <button type="button" className="btn quiet" onClick={close}>Annuler</button>
       </form>
     </dialog>
   );
@@ -244,6 +306,7 @@ export default function Shell({ children }: { children: ReactNode }) {
         </div>
       </div>
       <AuthModal />
+      {modal === 'repay' && <RepaymentDialog />}
       <div id="toasts" role="status" aria-live="polite">
         {toasts.map((t) => <div key={t.id} className={`toast ${t.kind}`}>{t.msg}</div>)}
       </div>

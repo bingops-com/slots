@@ -481,6 +481,18 @@ sup {
   gap: 0.5rem;
   margin-left: auto;
 }
+.repay-summary {
+  display: grid;
+  gap: 0.6rem;
+  margin: 1rem 0;
+  padding: 0.85rem;
+  border: 1px solid var(--field-line);
+  border-radius: 10px;
+}
+.repay-summary > div { display: flex; justify-content: space-between; gap: 1rem; }
+.repay-summary dt { min-width: 0; }
+.repay-summary dd { margin: 0; font-weight: 800; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.repay-dialog > input { width: 100%; }
 .who {
   font-weight: 700;
   margin-right: 0.25rem;
