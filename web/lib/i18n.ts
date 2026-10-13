@@ -31,7 +31,7 @@ const DICT: Record<string, string> = {
   "La dotation ne compte pas tant qu'elle n'est pas misée ; ce que vos mises rapportent, si.": 'The grant does not count until it is played; what your bets bring in does.',
   "Sans compte, on s'entraîne": 'Without an account, you practise',
   'Tous les jeux en solo se jouent aussi hors classement, sur votre appareil, même hors ligne.': 'Every solo game can also be played unranked, on your device, even offline.',
-  'Trois machines, chacune avec son univers, ses tours gratuits et ses bonus.': 'Three machines, each with its own world, free spins and bonuses.',
+  'Six machines, chacune avec son univers, ses tours gratuits et ses bonus.': 'Six machines, each with its own world, free spins and bonuses.',
   'En solo, contre la maison : une manche prend quelques secondes.': 'Solo, against the house: a round takes a few seconds.',
   "Une table commune, en classé : on s'y assoit avec un compte.": 'A shared table, ranked: you sit down with an account.',
   'La saison en cours': 'The current season', 'Le classement est une course : plus le score est haut, plus le bateau est loin.': 'The leaderboard is a race: the higher the score, the further the boat.',
@@ -117,12 +117,12 @@ const DICT: Record<string, string> = {
   'Gain potentiel': 'Potential win', "La barre d'espace lance aussi les dés.": 'The space bar also rolls the dice.', 'Au-dessus de': 'Over', 'En dessous de': 'Under', 'Chance de gain': 'Win chance',
   // ----- blackjack -----
   Tirer: 'Hit', Rester: 'Stand', Doubler: 'Double', Séparer: 'Split', Distribuer: 'Deal', Croupier: 'Dealer', Vous: 'You',
-  'Blackjack payé 3 pour 2, le croupier reste à 17': 'Blackjack pays 3 to 2, dealer stands on 17', 'À vous de jouer': 'Your move', 'Égalité, mise rendue': 'Push, bet returned', Perdu: 'Lost',
+  'Blackjack payé 3 pour 2, le croupier reste à 17': 'Blackjack pays 3 to 2, dealer stands on 17', 'À vous de jouer': 'Your move', 'Au croupier de jouer': "Dealer's turn", 'Égalité, mise rendue': 'Push, bet returned', Perdu: 'Lost',
   // ----- blackjack à plusieurs -----
-  Miser: 'Bet', 'Mise posée': 'Bet placed', 'Donne en cours': 'Deal in progress', 'Table complète': 'Table full', 'Place libre': 'Free seat', 'Donne terminée': 'Deal over',
+  Miser: 'Bet', 'Mise posée': 'Bet placed', 'Donne en cours': 'Deal in progress', 'Table complète': 'Table full', 'Place libre': 'Free seat', 'Miser ici': 'Bet here', 'Mises posées': 'Bets placed', 'Égalité': 'Push', 'Donne terminée': 'Deal over',
   "En attente qu'un joueur mise": 'Waiting for a player to bet', 'Connexion à la table…': 'Connecting to the table…', 'Table injoignable, nouvel essai…': 'Table unreachable, retrying…',
-  'Cinq places. La donne part douze secondes après la première mise. Vingt secondes pour jouer, sinon la main reste. Blackjack payé 3 pour 2, le croupier reste à 17.':
-    'Five seats. The deal starts twelve seconds after the first bet. Twenty seconds to act, otherwise the hand stands. Blackjack pays 3 to 2, dealer stands on 17.',
+  "Cinq places : touchez un rond pour y poser votre mise, plusieurs si vous voulez jouer plusieurs mains, puis demandez la donne. Elle part dès que tous les joueurs présents l'ont demandée, cinq secondes au plus après la première mise. Cinq secondes pour jouer, sinon la main reste. Blackjack payé 3 pour 2, le croupier reste à 17.":
+    'Five seats: tap a circle to place your bet on it, several if you want to play several hands, then ask for the deal. It starts as soon as every player present has asked for it, five seconds at most after the first bet. Five seconds to act, otherwise the hand stands. Blackjack pays 3 to 2, dealer stands on 17.',
   "La table à plusieurs se joue en classé, avec un compte. À l'entraînement, le": 'The shared table is played ranked, with an account. In practice,', 'blackjack en solo': 'solo blackjack', 'reste ouvert.': 'stays open.',
   'Créez un compte pour vous asseoir à la table': 'Create an account to sit at the table',
   // ----- roulette -----
@@ -155,7 +155,7 @@ const DICT: Record<string, string> = {
   // ----- refus du moteur et du serveur -----
   'Mise invalide': 'Invalid bet', 'Solde insuffisant': 'Insufficient balance', 'Seuil invalide': 'Invalid threshold', 'Seuil hors limites': 'Threshold out of range', 'Paris invalides': 'Invalid bets',
   'Numéro invalide': 'Invalid number', 'Pari invalide': 'Invalid bet', 'Type de pari inconnu': 'Unknown bet type', 'Nombre de mines invalide': 'Invalid number of mines', 'Case invalide': 'Invalid tile',
-  'Case déjà révélée': 'Tile already revealed', 'Action impossible': 'Action not possible', 'Une main est déjà en cours': 'A hand is already in progress', 'Aucune main en cours': 'No hand in progress',
+  'Case déjà révélée': 'Tile already revealed', 'Action impossible': 'Action not possible', 'Cette place est prise': 'This seat is taken', 'Vos mises sont posées, la donne arrive': 'Your bets are placed, the deal is coming', "Posez d'abord une mise": 'Place a bet first', 'Une main est déjà en cours': 'A hand is already in progress', 'Aucune main en cours': 'No hand in progress',
   'Une partie est déjà en cours': 'A game is already in progress', 'Aucune partie en cours': 'No game in progress', 'Révélez au moins une case': 'Reveal at least one tile',
   "L'avance n'est proposée que lorsqu'il ne reste plus rien à miser": 'The advance is only offered when there is nothing left to play', 'Action inconnue': 'Unknown action', 'Requête invalide': 'Invalid request',
   'Achat inconnu': 'Unknown purchase', 'Une plongée est déjà en cours': 'A dive is already in progress', 'Aucune plongée en cours': 'No dive in progress',
@@ -173,6 +173,7 @@ const ordinal = (n: string) => `${n}${n.endsWith('1') && n !== '11' ? 'st' : n.e
 
 // Textes à trous. $1, $2… reprennent les morceaux capturés.
 const RULES: [RegExp, string | ((...m: string[]) => string)][] = [
+  [/^Seuil des dés$/, 'Dice threshold'], [/^Tapis de roulette$/, 'Roulette betting board'], [/^Case (\d+)$/, 'Tile $1'],
   [/^Classement de la saison (\d+)$/, 'Season $1 leaderboard'], [/^En tête de la saison (\d+)$/, 'Leading season $1'], [/^Classement de (.+)$/, '$1 board'],
   [/^Vous êtes (\d+)(?:er|e) sur (\d+), avec (.+)\.$/, (_, r, n, s) => `You are ${ordinal(r)} of ${n}, with ${s}.`],
   [/^(\d+) joueurs? en course\. Créez un compte pour (?:les|le) rejoindre, ou entraînez-vous sans enjeu\.$/, (_, n) => `${n} player${plural(n)} in the race. Create an account to join, or practise with no stakes.`],

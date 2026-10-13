@@ -1,23 +1,32 @@
 package engine
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 // A shared blackjack table: several players bet on the same deal and play
-// their hands in turn against one dealer. The table waits for a first bet,
-// leaves a moment for others to join, deals, gives each player a limited time
-// to act, plays the dealer, shows the result, and starts over.
+// their hands in turn against one dealer. A player may bet on several of the
+// five places and plays each of those hands. The table waits for a first bet,
+// deals as soon as everyone watching says they are ready (or after a short
+// moment), gives
+// each player a limited time to act, plays the dealer, shows the result, and
+// starts over. Nothing makes the players wait more than five seconds.
 //
 // This file is the table's rules only. It holds no money and no clock: the
 // server debits and pays the wallets, and passes the time in.
 
 const (
 	TableSeats     = 5
-	tableBetWindow = 12_000 // ms left to the others once a first bet is placed
-	tableTurnTime  = 20_000 // ms to act before standing by default
-	tableShowTime  = 7_000  // ms the result stays on the table
+	tableBetWindow = 5_000 // ms left to the others once a first bet is placed
+	tableTurnTime  = 5_000 // ms to act before standing by default
+	tableShowTime  = 5_000 // ms the result stays on the table
+	tableCardTime  = 150   // ms the screen takes to deal a card: the first turn starts once they are down
+	tablePresence  = 4_000 // ms after which a player who stopped asking is gone
 )
 
 type TableSeat struct {
+	Pos       int // which of the five places, from the dealer's left; hands are played in that order
 	UserID    string
 	Name      string
 	Cards     []Card
@@ -36,6 +45,11 @@ type Table struct {
 	Turn     int
 	Deadline int64
 	Round    int64
+	// Present is when each signed-in player last looked at the table: the deal
+	// does not wait for people who are not there.
+	Present map[string]int64
+	// Ready holds the players who have placed all the bets they wanted.
+	Ready map[string]bool
 }
 
 // TableResult is what the server must settle for one player.
@@ -46,6 +60,7 @@ type TableResult struct {
 }
 
 type TableSeatView struct {
+	Pos    int    `json:"pos"`
 	Name   string `json:"name"`
 	Cards  []Card `json:"cards"`
 	Total  int    `json:"total"`
@@ -65,12 +80,56 @@ type TableView struct {
 	Seats       []TableSeatView `json:"seats"`
 	Free        int             `json:"free"`      // seats still open
 	Remaining   int64           `json:"remaining"` // ms before the phase moves on by itself
+	Window      int64           `json:"window"`    // ms the phase lasts at most
 	Seated      bool            `json:"seated"`
+	Ready       bool            `json:"ready"`    // the player asked for the deal
+	CanReady    bool            `json:"canReady"` // the player has bets down and may ask for it
 	CanBet      bool            `json:"canBet"`
 	Actions     []string        `json:"actions"`
 }
 
-func NewTable() *Table { return &Table{Phase: "waiting", Seats: []*TableSeat{}} }
+func NewTable() *Table {
+	return &Table{Phase: "waiting", Seats: []*TableSeat{}, Present: map[string]int64{}, Ready: map[string]bool{}}
+}
+
+// Seen records that a player is looking at the table.
+func (t *Table) Seen(userID string, now int64) { t.Present[userID] = now }
+
+// everyoneIn says whether all the players at the table have placed their bets
+// and asked for the deal.
+func (t *Table) everyoneIn(now int64) bool {
+	for id, at := range t.Present {
+		if now-at > tablePresence {
+			delete(t.Present, id)
+			continue
+		}
+		if !t.Ready[id] {
+			return false
+		}
+	}
+	return true
+}
+
+// CanReady says whether the player may ask for the deal: the bets are open and
+// one of them is theirs.
+func (t *Table) CanReady(userID string) bool {
+	return t.Phase == "betting" && t.seat(userID) != nil && !t.Ready[userID]
+}
+
+// SetReady records that the player has no more bets to place.
+func (t *Table) SetReady(userID string, now int64) {
+	t.Ready[userID] = true
+	t.Seen(userID, now)
+}
+
+// Stamp changes whenever something happens at the table.
+func (t *Table) Stamp() string {
+	cards := len(t.Dealer)
+	for _, s := range t.Seats {
+		cards += len(s.Cards)
+	}
+	return fmt.Sprintf("%s/%d/%d/%d/%d/%d", t.Phase, t.Round, t.Turn, t.Deadline, len(t.Seats), cards)
+}
 
 func (t *Table) seat(userID string) *TableSeat {
 	for _, s := range t.Seats {
@@ -81,26 +140,58 @@ func (t *Table) seat(userID string) *TableSeat {
 	return nil
 }
 
-// CanBet says whether the player may join the coming deal.
-func (t *Table) CanBet(userID string, amount int64) error {
+// place is the place the player gets: the one asked for, or the first free one
+// when pos is negative. It is -1 when that cannot be.
+func (t *Table) place(pos int) int {
+	taken := [TableSeats]bool{}
+	for _, s := range t.Seats {
+		taken[s.Pos] = true
+	}
+	if pos >= 0 {
+		if pos >= TableSeats || taken[pos] {
+			return -1
+		}
+		return pos
+	}
+	for i, used := range taken {
+		if !used {
+			return i
+		}
+	}
+	return -1
+}
+
+// CanBet says whether the player may join the coming deal at that place (any
+// free place when pos is negative).
+func (t *Table) CanBet(userID string, amount int64, pos int) error {
 	if amount < minBet || amount > maxBet {
 		return Error("Mise invalide")
 	}
 	if t.Phase != "waiting" && t.Phase != "betting" {
 		return Error("La donne est en cours, attendez la suivante")
 	}
-	if t.seat(userID) != nil {
-		return Error("Votre mise est déjà posée")
+	if t.Ready[userID] {
+		return Error("Vos mises sont posées, la donne arrive")
 	}
 	if len(t.Seats) >= TableSeats {
 		return Error("La table est complète")
 	}
+	if t.place(pos) < 0 {
+		return Error("Cette place est prise")
+	}
 	return nil
 }
 
-// Bet seats the player. The first bet opens the window for the others.
-func (t *Table) Bet(userID, name string, amount, fromStake, now int64) {
-	t.Seats = append(t.Seats, &TableSeat{UserID: userID, Name: name, Bet: amount, FromStake: fromStake, Cards: []Card{}})
+// Bet seats the player at a place accepted by CanBet. The first bet opens the
+// window for the others.
+func (t *Table) Bet(userID, name string, amount, fromStake int64, pos int, now int64) {
+	seat := &TableSeat{Pos: t.place(pos), UserID: userID, Name: name, Bet: amount, FromStake: fromStake, Cards: []Card{}}
+	at := 0
+	for at < len(t.Seats) && t.Seats[at].Pos < seat.Pos {
+		at++
+	}
+	t.Seats = append(t.Seats[:at], append([]*TableSeat{seat}, t.Seats[at:]...)...)
+	t.Seen(userID, now)
 	if t.Phase == "waiting" {
 		t.Phase = "betting"
 		t.Deadline = now + tableBetWindow
@@ -190,7 +281,11 @@ func (t *Table) deal(rng Source, now int64) []TableResult {
 	if bjNatural(t.Dealer) {
 		return t.finish(rng, now)
 	}
-	return t.next(rng, now)
+	res := t.next(rng, now)
+	if t.Phase == "playing" {
+		t.Deadline += int64(tableCardTime * 2 * (len(t.Seats) + 1))
+	}
+	return res
 }
 
 func (t *Table) finish(rng Source, now int64) []TableResult {
@@ -236,7 +331,10 @@ func (t *Table) finish(rng Source, now int64) []TableResult {
 // Tick moves the table on when a deadline has passed. It returns the results
 // to settle when a deal has just ended.
 func (t *Table) Tick(rng Source, now int64) []TableResult {
-	if t.Phase == "waiting" || now < t.Deadline {
+	if t.Phase == "waiting" {
+		return nil
+	}
+	if now < t.Deadline && (t.Phase != "betting" || !t.everyoneIn(now)) {
 		return nil
 	}
 	switch t.Phase {
@@ -250,6 +348,7 @@ func (t *Table) Tick(rng Source, now int64) []TableResult {
 		t.Phase = "waiting"
 		t.Dealer = nil
 		t.Seats = []*TableSeat{}
+		t.Ready = map[string]bool{}
 		t.Round++
 	}
 	return nil
@@ -279,10 +378,12 @@ func (t *Table) View(userID string, now int64) TableView {
 	}
 	if t.Phase != "waiting" {
 		v.Remaining = max(0, t.Deadline-now)
+		v.Window = map[string]int64{"betting": tableBetWindow, "playing": tableTurnTime, "done": tableShowTime}[t.Phase]
 	}
-	v.CanBet = userID != "" && !v.Seated && v.Free > 0 && (t.Phase == "waiting" || t.Phase == "betting")
+	v.Ready, v.CanReady = t.Ready[userID], t.CanReady(userID)
+	v.CanBet = userID != "" && !v.Ready && v.Free > 0 && (t.Phase == "waiting" || t.Phase == "betting")
 	for i, s := range t.Seats {
-		sv := TableSeatView{Name: s.Name, Cards: s.Cards, Total: bjTotal(s.Cards), Bet: s.Bet, Result: s.Result, You: s.UserID == userID, Turn: t.Phase == "playing" && i == t.Turn}
+		sv := TableSeatView{Pos: s.Pos, Name: s.Name, Cards: s.Cards, Total: bjTotal(s.Cards), Bet: s.Bet, Result: s.Result, You: s.UserID == userID, Turn: t.Phase == "playing" && i == t.Turn}
 		if done {
 			p := s.Payout
 			sv.Payout = &p

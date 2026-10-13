@@ -37,7 +37,7 @@ Nom du cluster PostgreSQL géré par CloudNativePG
 Secret et clé où lire l'URL de la base
 */}}
 {{- define "slots.databaseSecret" -}}
-{{- if .Values.database.cnpg.enabled -}}
+{{- if and .Values.database.cnpg.enabled (not .Values.database.sharedAccounts) -}}
 {{- printf "%s-app" (include "slots.postgresql" .) -}}
 {{- else -}}
 {{- required "database.existingSecret.name est requis quand database.cnpg.enabled est false" .Values.database.existingSecret.name -}}

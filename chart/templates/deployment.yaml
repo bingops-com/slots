@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "slots.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ if .Values.maintenance }}0{{ else }}1{{ end }}
   # Jamais deux instances à la fois : l'ancienne s'arrête (et rend les mises de la
   # donne en cours) avant que la nouvelle ne démarre.
   strategy:
@@ -39,7 +39,9 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ include "slots.databaseSecret" . }}
-                  key: {{ if .Values.database.cnpg.enabled }}uri{{ else }}{{ .Values.database.existingSecret.key }}{{ end }}
+                  key: {{ if and .Values.database.cnpg.enabled (not .Values.database.sharedAccounts) }}uri{{ else }}{{ .Values.database.existingSecret.key }}{{ end }}
+            - name: SLOTS_SHARED_ACCOUNTS
+              value: {{ .Values.database.sharedAccounts | quote }}
           ports:
             - name: http
               containerPort: 3777

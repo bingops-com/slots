@@ -1,5 +1,20 @@
 # slots
 
+La connexion commune avec Games est préparée derrière
+`SLOTS_SHARED_ACCOUNTS=true` (désactivé par défaut). Elle exige une base migrée
+explicitement et utilise les schémas `slots,identity`. Les mots de passe et
+sessions sont communs, tandis que les portefeuilles, saisons et statistiques
+de Slots restent distincts des crédits et statistiques Games. Les cookies
+restent propres à chaque site : même pseudo/mot de passe, connexion sur chacun.
+Une récupération ou un changement de mot de passe dans Games révoque aussi les
+sessions Slots. La récupération par codes reste accessible depuis Games.
+
+Le [runbook LabOps Arcade](https://github.com/bingops-com/labops/tree/master/apps/workloads/arcade)
+possède la migration, les preuves de double connexion, les sauvegardes et la
+restauration. Le chart choisit le Secret commun avec `database.sharedAccounts`
+tout en gardant l'ancien cluster déclaré. `maintenance: true` arrête le serveur
+pour le gel des écritures autorisé ; ne pas supprimer l'ancien CNPG à la bascule.
+
 Machines à sous et jeux de table **entièrement fictifs** de `lab.bingo` : aucun
 argent, des crédits qui ne s'achètent pas et ne se retirent pas, et un classement
 par saison.
@@ -24,6 +39,22 @@ Il faut Go (version de `go.mod`) et Node 20.9 ou plus récent. `make db` téléc
 PostgreSQL à la première utilisation et garde ses données dans `data/pg` ; les
 tests démarrent le leur de la même façon, ou utilisent celui que désigne
 `SLOTS_TEST_DATABASE_URL`.
+
+Les régressions navigateur couvrent les 14 jeux, les affiches historiques,
+les thèmes clair/sombre sur quatre formats d'écran, les fenêtres de connexion
+(fermeture, Échap et clavier), le blackjack à plusieurs mains et l'entraînement
+WASM hors ligne. Après `make web`, avec Chromium installé et une base de
+développement dédiée, lancer :
+
+```sh
+SLOTS_DATABASE_URL=postgres://test:test@127.0.0.1:5433/slots_e2e CHROMIUM=/usr/bin/chromium bash web/e2e/check.sh
+```
+
+Ce test crée des comptes fictifs et joue des manches ; ne jamais lui fournir
+la base de production. Le serveur temporaire écoute uniquement sur loopback et
+s'arrête automatiquement. Les rapports et captures restent dans `/tmp/slots-regressions`
+(modifiable par `SLOTS_E2E_REPORT_DIR`). La CI installe son Chromium et utilise
+son PostgreSQL éphémère. La suppression du fond sonore de mer est conservée.
 
 ## Deux façons de jouer
 
@@ -70,7 +101,7 @@ tout le monde et vide les tableaux ; les parties en cours sont abandonnées.
 | Blackjack | Sabot infini, croupier qui s'arrête à 17, doubler, séparer une fois, blackjack payé 3 pour 2. |
 | Roulette | Européenne, un seul zéro. |
 | Dés | Le joueur fixe le seuil ; 1 % d'avantage pour la maison. |
-| Blackjack à plusieurs | Une table de cinq places, en classé seulement. La table attend une première mise, laisse douze secondes aux autres, distribue, puis chacun joue à son tour (vingt secondes, sinon la main reste). Mêmes règles que le blackjack en solo, sans la séparation. |
+| Blackjack à plusieurs | Une table de cinq places, en classé seulement. Chaque place est un rond où l'on pose sa mise en le touchant ; un joueur peut en prendre plusieurs et joue alors plusieurs mains, de la première place à la dernière. La table attend une première mise et distribue dès que tous les joueurs présents ont demandé la donne, cinq secondes plus tard au plus ; chacun joue ensuite à son tour (cinq secondes, sinon la main reste), et le résultat reste cinq secondes sur le tapis. Mêmes règles que le blackjack en solo, sans la séparation. |
 | Mines | 25 cases, 1 à 24 mines ; 1 % d'avantage pour la maison. |
 | Texas hold'em | Une table de six places, sans limite, en classé seulement. On s'assoit avec une cave de 40 à 200 grosses blindes prise sur ses crédits, on repart avec ce qu'il reste. Des personnages de la maison, chacun avec son tempérament, complètent la table ; la maison ne prélève rien. |
 | Plinko | Une perle tombe entre 8, 12 ou 16 rangées de plots vers une case à multiplicateur ; trois niveaux de risque. Chaque table rend environ 99 % des mises. |
@@ -188,8 +219,8 @@ hors ligne on s'entraîne, et le libellé du solde le dit (« À miser » ou
 « Entraînement »). Sur téléphone, la bande devient un en-tête qui reste en vue
 (logo, solde, menu) ; le compte, la langue, le son et la navigation sont dans le
 menu, et la scène vient juste dessous, suivie des réglages puis de « Remettre à
-10 000 » (ou « Demander une avance ») et du plein écran. L'accueil occupe toute
-la largeur de l'écran. Dans la navigation, chaque famille de jeux se replie sous
+10 000 » (ou « Demander une avance ») et du plein écran. Les icônes sont dessinées pour le lieu : chaque jeu a la sienne dans la navigation (la pieuvre du blackjack à plusieurs, la barre-roulette, le coquillage des mines), le son est une cloche de bord, la langue un globe, le plein écran une longue-vue, et le crédit une pièce frappée d'une barre de navire. L'accueil occupe toute
+la largeur de l'écran. Chaque jeu y a son affiche : une scène où son personnage ou son objet est en action (le duel de Mort ou Vif, la pieuvre qui distribue, le crabe qui lance les dés), préparée par `art/build.py`. Dans la navigation, chaque famille de jeux se replie sous
 son titre, et le choix est retenu.
 
 Sur la scène de chaque machine, une carte présente ses tours gratuits : le

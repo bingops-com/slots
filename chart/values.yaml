@@ -3,6 +3,9 @@
 fullnameOverride: ""
 nameOverride: ""
 
+# Reviewed migration write freeze. Database and backups remain declared.
+maintenance: false
+
 image:
   repository: ghcr.io/bingops-com/slots
   tag: latest
@@ -28,6 +31,8 @@ ingress:
 trustProxy: true
 
 database:
+  # Requires the reviewed LabOps arcade migration; disabled for existing DBs.
+  sharedAccounts: false
   # Base gérée par CloudNativePG dans le namespace de la release. L'application lit
   # l'URI de connexion dans le Secret que CNPG génère (<nom>-postgresql-app, clé uri).
   cnpg:

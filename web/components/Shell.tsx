@@ -3,11 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { GAMES } from '@/games/catalog';
+import { pic, GAMES } from '@/games/catalog';
 import { App, useApp } from '@/lib/app';
-import { Art } from '@/lib/art.js';
 import { store } from '@/lib/dom.js';
-import Icon from './Icon';
+import Icon, { Tile } from './Icon';
 
 // Une famille de jeux dans la navigation : son titre l'ouvre et la referme, et le choix
 // est retenu d'une visite à l'autre.
@@ -42,8 +41,8 @@ function Nav() {
   const of = (kind: string) => GAMES.filter((g) => g.kind === kind).map((g) => link(`/g/${g.id}/`, g.icon, g.name));
   return (
     <nav id="nav" aria-label="Jeux">
-      {link('/', Art.boat, 'Accueil')}
-      {link('/classement/', Art.trophy, 'Classement')}
+      {link('/', pic('nav/home'), 'Accueil')}
+      {link('/classement/', pic('nav/trophy'), 'Classement')}
       <Group id="slot" title="Machines à sous">{of('slot')}</Group>
       <Group id="table" title="Jeux de table">{of('table')}</Group>
       <Group id="online" title="En ligne, à plusieurs">{of('online')}</Group>
@@ -112,18 +111,20 @@ function Tools() {
   const s = useApp();
   return (
     <>
-      {s.offline && <button className="offline" onClick={() => App.refresh({ offline: false })}>Hors ligne, réessayer</button>}
+      {s.offline && <button className="offline" onClick={() => App.refresh({ offline: false })}><Tile name="anchor" />Hors ligne, réessayer</button>}
       <button className="btn quiet small sound" aria-pressed={s.sound} onClick={() => App.toggleSound()}>
+        <Tile name={s.sound ? 'bell' : 'bell-off'} />
         {s.sound ? 'Son activé' : 'Son coupé'}
       </button>
       <button className="btn quiet small" data-notranslate lang={s.lang === 'fr' ? 'en' : 'fr'} onClick={() => App.setLang(s.lang === 'fr' ? 'en' : 'fr')}>
+        <Tile name="globe" />
         {s.lang === 'fr' ? 'English' : 'Français'}
       </button>
       <div className="account">
         {s.account ? (
           <>
-            <span className="who">{s.account.name}</span>
-            <button className="btn quiet small" onClick={() => App.signOut()}>Se déconnecter</button>
+            <span className="who"><Tile name="cap" />{s.account.name}</span>
+            <button className="btn quiet small" onClick={() => App.signOut()}><Tile name="rowboat" />Se déconnecter</button>
           </>
         ) : (
           s.ready && (
@@ -139,14 +140,20 @@ function Tools() {
 }
 
 function AuthModal() {
-  const { modal } = useApp();
+  const { modal, lang } = useApp();
   const first = useRef<HTMLInputElement>(null);
+  const box = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     if (!modal) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const dialog = box.current!;
+    dialog.showModal();
     first.current?.focus();
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && App.openModal(null);
-    document.addEventListener('keydown', esc);
-    return () => document.removeEventListener('keydown', esc);
+    return () => {
+      dialog.close();
+      if (previous?.isConnected && previous.getClientRects().length) previous.focus();
+      else document.querySelector<HTMLButtonElement>('.burger')?.focus();
+    };
   }, [modal]);
   if (!modal) return null;
   const register = modal === 'register';
@@ -160,8 +167,15 @@ function AuthModal() {
     }
   };
   return (
-    <div id="modal" className="modal" onClick={(e) => e.target === e.currentTarget && App.openModal(null)}>
-      <form className="dialog" onSubmit={submit} role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+    <dialog id="modal" ref={box} className="modal" aria-labelledby="dialog-title" onCancel={(e) => { e.preventDefault(); App.openModal(null); }} onClick={(e) => e.target === e.currentTarget && App.openModal(null)} onKeyDown={(e) => {
+      if (e.key !== 'Tab') return;
+      const items = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), a[href]')).filter(el => el.getClientRects().length);
+      const first = items[0], last = items.at(-1);
+      if (e.shiftKey && document.activeElement === first && last) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last && first) { e.preventDefault(); first.focus(); }
+    }}>
+      <form className="dialog" onSubmit={submit}>
+        <button type="button" className="dialog-close" aria-label={lang === 'en' ? 'Close dialog' : 'Fermer la fenêtre'} onClick={() => App.openModal(null)}>×</button>
         <h2 id="dialog-title">{register ? 'Créer un compte' : 'Se connecter'}</h2>
         <p>
           {register
@@ -178,19 +192,27 @@ function AuthModal() {
           {register ? "J'ai déjà un compte" : 'Créer un compte'}
         </button>
       </form>
-    </div>
+    </dialog>
   );
 }
 
 export default function Shell({ children }: { children: ReactNode }) {
-  const { toasts, user, practice } = useApp();
+  const { toasts, user, practice, modal } = useApp();
   const here = usePathname();
   const [menu, setMenu] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     void App.start();
   }, []);
   // Le menu du téléphone se referme dès qu'on a choisi une page.
   useEffect(() => setMenu(false), [here]);
+  useEffect(() => { if (modal) setMenu(false); }, [modal]);
+  useEffect(() => {
+    if (!menu) return;
+    const escape = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('dialog[open]')) { setMenu(false); menuButton.current?.focus(); } };
+    document.addEventListener('keydown', escape);
+    return () => document.removeEventListener('keydown', escape);
+  }, [menu]);
   return (
     <>
       <div id="app">
@@ -201,7 +223,7 @@ export default function Shell({ children }: { children: ReactNode }) {
             <span>lab.bingo <span className="lockup-kind">slots</span></span>
           </Link>
           <Readout className="side-wallet" />
-          <button className="burger" aria-label="Menu" aria-expanded={menu} aria-controls="menu" onClick={() => setMenu(!menu)}><i /></button>
+          <button ref={menuButton} className="burger" aria-label="Menu" aria-expanded={menu} aria-controls="menu" onClick={() => setMenu(!menu)}><i /></button>
           {/* Sur téléphone, le menu porte aussi le compte et les réglages. */}
           <div id="menu" className={menu ? 'menu open' : 'menu'}>
             <div className="menu-tools">

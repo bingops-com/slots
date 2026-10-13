@@ -5,6 +5,7 @@ import { SCENES } from '@/games';
 import { byId } from '@/games/catalog';
 import { App, useApp } from '@/lib/app';
 import SideBoard from './SideBoard';
+import { Tile } from './Icon';
 
 // Plein écran : la scène et ses réglages occupent tout l'écran. Là où le navigateur ne
 // sait pas le faire (iPhone), ils occupent au moins toute la fenêtre.
@@ -32,6 +33,12 @@ function useImmersive() {
       if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
     };
   }, []);
+  useEffect(() => {
+    if (!on) return;
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape' && !document.querySelector('dialog[open]')) leave(); };
+    document.addEventListener('keydown', escape);
+    return () => document.removeEventListener('keydown', escape);
+  }, [on, leave]);
   return [on, toggle] as const;
 }
 
@@ -79,6 +86,7 @@ export default function GameStage({ id }: { id: string }) {
           {user && practice && <button className="btn quiet small" onClick={() => App.resetPractice()}>Remettre à 10 000</button>}
           {user && !practice && user.canAdvance && <button className="btn quiet small" onClick={() => App.advance()}>Demander une avance</button>}
           <button className="btn quiet small" aria-pressed={immersive} onClick={toggleImmersive}>
+            <Tile name="spyglass" />
             {immersive ? 'Quitter le plein écran' : 'Plein écran'}
           </button>
         </div>

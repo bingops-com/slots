@@ -2,6 +2,7 @@ package engine
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/rand/v2"
 	"strings"
 	"testing"
@@ -446,4 +447,76 @@ func TestPokerChips(t *testing.T) {
 		t.Fatalf("bought %d, cashed %d", in, out)
 	}
 	t.Logf("%d hands, players brought %d and left with %d", hands, in, out)
+}
+
+// The shared table never keeps its players waiting: the deal starts as soon as
+// everyone looking at the table has bet, and five seconds after the first bet
+// at the latest.
+func TestTableWaits(t *testing.T) {
+	rng := seeded(3)
+	tb := NewTable()
+	tb.Seen("a", 0)
+	tb.Bet("a", "Alice", 100, 0, -1, 0)
+	tb.Bet("a", "Alice", 100, 0, -1, 0)
+	if tb.Tick(rng, 1); tb.Phase != "betting" {
+		t.Fatal("dealt before the player had finished betting")
+	}
+	tb.SetReady("a", 2)
+	if tb.Tick(rng, 3); tb.Phase == "betting" || len(tb.Seats) != 2 {
+		t.Fatal("a player alone and ready waited for the deal")
+	}
+
+	tb = NewTable()
+	tb.Seen("b", 0)
+	tb.Bet("a", "Alice", 100, 0, -1, 0)
+	tb.SetReady("a", 0)
+	for now := int64(0); now < tableBetWindow; now += 500 {
+		tb.Seen("b", now)
+		if tb.Tick(rng, now); tb.Phase != "betting" {
+			t.Fatalf("dealt at %d ms without the player who had not bet yet", now)
+		}
+	}
+	tb.Tick(rng, tableBetWindow)
+	if tb.Phase == "betting" {
+		t.Fatal("the bets stayed open more than five seconds")
+	}
+	for _, w := range []int64{tableBetWindow, tableTurnTime, tableShowTime} {
+		if w > 5_000 {
+			t.Fatalf("a wait of %d ms", w)
+		}
+	}
+	// A player who stopped looking does not hold the deal back.
+	tb = NewTable()
+	tb.Seen("b", 0)
+	tb.Bet("a", "Alice", 100, 0, -1, tablePresence+1)
+	tb.SetReady("a", tablePresence+1)
+	tb.Tick(rng, tablePresence+2)
+	if tb.Phase == "betting" {
+		t.Fatal("the deal waited for a player who had left")
+	}
+}
+
+// A player picks a place at the shared table; hands are played from the first
+// place to the last, whoever bet first.
+func TestTablePlaces(t *testing.T) {
+	tb := NewTable()
+	tb.Seen("a", 0)
+	tb.Seen("b", 0)
+	tb.Seen("c", 0)
+	if err := tb.CanBet("a", 100, 3); err != nil {
+		t.Fatal(err)
+	}
+	tb.Bet("a", "Alice", 100, 0, 3, 0)
+	if tb.CanBet("b", 100, 3) == nil || tb.CanBet("b", 100, TableSeats) == nil {
+		t.Fatal("a taken or unknown place was accepted")
+	}
+	tb.Bet("b", "Basile", 100, 0, 1, 0)
+	tb.Bet("c", "Chloé", 100, 0, -1, 0)
+	got := ""
+	for _, s := range tb.Seats {
+		got += fmt.Sprintf("%s%d ", s.UserID, s.Pos)
+	}
+	if got != "c0 b1 a3 " {
+		t.Fatalf("places: %s", got)
+	}
 }

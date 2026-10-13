@@ -207,17 +207,31 @@ func TestSharedTable(t *testing.T) {
 	if code, _ := (&client{t: t, http: http.DefaultClient, base: a.base}).do("POST", "/api/table/bet", `{"bet":100}`); code != 401 {
 		t.Fatalf("bet without an account: %d", code)
 	}
+	// Basile is looking at the table: the deal waits for his bet.
+	b.do("GET", "/api/table", "")
 	code, out := a.do("POST", "/api/table/bet", `{"bet":1000}`)
 	if code != 200 || out["table"].(map[string]any)["phase"] != "betting" || out["user"].(map[string]any)["balance"].(float64) != 999_000 {
 		t.Fatalf("first bet: %d %v", code, out)
 	}
-	if code, _ = a.do("POST", "/api/table/bet", `{"bet":1000}`); code != 400 {
-		t.Fatalf("second bet by the same player: %d", code)
+	// A player may hold several places, but not twice the same one.
+	if code, _ = a.do("POST", "/api/table/bet", `{"bet":1000,"seat":0}`); code != 400 {
+		t.Fatalf("second bet on the same place: %d", code)
+	}
+	if code, out = a.do("POST", "/api/table/bet", `{"bet":1000,"seat":4}`); code != 200 || out["user"].(map[string]any)["balance"].(float64) != 998_000 {
+		t.Fatalf("second hand: %d %v", code, out)
+	}
+	if code, _ = b.do("POST", "/api/table/ready", ""); code != 400 {
+		t.Fatalf("ready without a bet: %d", code)
 	}
 	if code, _ = b.do("POST", "/api/table/action", `{"action":"hit"}`); code != 400 {
 		t.Fatalf("action before the deal: %d", code)
 	}
 	b.do("POST", "/api/table/bet", `{"bet":500}`)
+	a.do("POST", "/api/table/ready", `{}`)
+	if code, _ = a.do("POST", "/api/table/bet", `{"bet":1000}`); code != 400 {
+		t.Fatalf("bet after asking for the deal: %d", code)
+	}
+	b.do("POST", "/api/table/ready", `{}`)
 
 	// Play the deal through by standing whenever it is our turn.
 	deadline := time.Now().Add(20 * time.Second)
@@ -244,15 +258,23 @@ func TestSharedTable(t *testing.T) {
 	}
 	_, out = a.do("GET", "/api/table", "")
 	seats := out["table"].(map[string]any)["seats"].([]any)
-	if len(seats) != 2 {
+	if len(seats) != 3 {
 		t.Fatalf("seats: %v", seats)
 	}
+	// Alice played two hands, Basile one: each wallet moved by its own hands.
 	for i, c := range []*client{a, b} {
 		_, me := c.do("GET", "/api/me", "")
 		u := me["user"].(map[string]any)
-		seat := seats[i].(map[string]any)
-		if want := 1_000_000 - seat["bet"].(float64) + seat["payout"].(float64); u["balance"].(float64) != want || u["rounds"].(float64) != 1 {
-			t.Fatalf("player %d: balance %v, want %v (%v)", i, u["balance"], want, seat)
+		want, hands := 1_000_000.0, 0.0
+		for _, raw := range seats {
+			seat := raw.(map[string]any)
+			if seat["name"] == []string{"Alice", "Basile"}[i] {
+				want += seat["payout"].(float64) - seat["bet"].(float64)
+				hands++
+			}
+		}
+		if u["balance"].(float64) != want || u["rounds"].(float64) != hands {
+			t.Fatalf("player %d: balance %v, want %v, %v hands (%v)", i, u["balance"], want, hands, seats)
 		}
 	}
 	_ = st

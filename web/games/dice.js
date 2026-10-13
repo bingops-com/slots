@@ -20,7 +20,7 @@ const game = {
         <div class="dice-table"><img class="pic crab" src="/art/tables/crab.webp" alt="" draggable="false"><img class="pic dicepic" src="/art/tables/dice.webp" alt="" draggable="false"></div>
         <div class="dice-track">
           <div class="dice-result" id="d-result" hidden></div>
-          <input type="range" min="2" max="98" step="1" value="50" id="d-range">
+          <input type="range" min="2" max="98" step="1" value="50" id="d-range" aria-label="Seuil des dés">
           <div class="scale"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
         </div>
         <div class="dice-stats">

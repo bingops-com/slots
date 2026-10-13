@@ -80,6 +80,7 @@ func New(st *store.Store, web fs.FS, cfg Config) (*Server, error) {
 	api.HandleFunc("GET /api/feed", s.handle(s.feed))
 	api.HandleFunc("GET /api/table", s.handle(s.tableState))
 	api.HandleFunc("POST /api/table/bet", s.handle(s.tableBet))
+	api.HandleFunc("POST /api/table/ready", s.handle(s.tableReady))
 	api.HandleFunc("POST /api/table/action", s.handle(s.tableAction))
 	api.HandleFunc("GET /api/poker", s.handle(s.pokerState))
 	api.HandleFunc("POST /api/poker/sit", s.handle(s.pokerSit))
@@ -296,13 +297,13 @@ func tokenHash(token string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func (s *Server) openSession(w http.ResponseWriter, r *http.Request, userID string) error {
+func (s *Server) openSession(w http.ResponseWriter, r *http.Request, userID, passwordHash string) error {
 	raw := make([]byte, 32)
 	if _, err := rand.Read(raw); err != nil {
 		return err
 	}
 	token := hex.EncodeToString(raw)
-	if err := s.store.CreateSession(r.Context(), userID, tokenHash(token), time.Now().Add(sessionLife)); err != nil {
+	if err := s.store.CreateSessionForPassword(r.Context(), userID, tokenHash(token), passwordHash, time.Now().Add(sessionLife)); err != nil {
 		return err
 	}
 	http.SetCookie(w, &http.Cookie{
@@ -346,14 +347,15 @@ func (s *Server) register(w http.ResponseWriter, r *http.Request) (any, error) {
 	if len(c.Password) < 8 || len(c.Password) > 128 {
 		return nil, bad("Mot de passe : 8 caractères minimum")
 	}
-	u, err := s.store.CreateUser(r.Context(), c.Name, hashPassword(c.Password))
+	passwordHash := hashPassword(c.Password)
+	u, err := s.store.CreateUser(r.Context(), c.Name, passwordHash)
 	if errors.Is(err, store.ErrNameTaken) {
 		return nil, httpError{http.StatusConflict, "Ce pseudo est déjà pris"}
 	}
 	if err != nil {
 		return nil, err
 	}
-	if err := s.openSession(w, r, u.ID); err != nil {
+	if err := s.openSession(w, r, u.ID, passwordHash); err != nil {
 		return nil, err
 	}
 	acc, err := s.account(r.Context(), u)
@@ -378,7 +380,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) (any, error) {
 	if len(c.Password) > 128 || !checkPassword(hash, c.Password) || id == "" {
 		return nil, httpError{http.StatusUnauthorized, "Pseudo ou mot de passe incorrect"}
 	}
-	if err := s.openSession(w, r, id); err != nil {
+	if err := s.openSession(w, r, id, hash); err != nil {
 		return nil, err
 	}
 	u, err := s.store.User(r.Context(), id)

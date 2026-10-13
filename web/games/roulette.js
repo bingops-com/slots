@@ -37,7 +37,7 @@ const game = {
         <div class="history" id="r-history"></div>
         <div class="rwheel"><img class="pic rwheel-img" src="/art/tables/wheel.webp" alt="" draggable="false"><i class="orbit"><i></i></i><div class="ball" id="r-ball">?</div></div>
         <div class="winline" id="r-msg">Posez vos jetons sur le tapis</div>
-        <div class="board">${board}</div>
+        <div class="board-scroll" role="region" aria-label="Tapis de roulette" tabindex="0"><div class="board">${board}</div></div>
       </div>`;
 
     let chip = 100;
