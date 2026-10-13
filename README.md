@@ -1,5 +1,20 @@
 # slots
 
+La connexion commune avec Games est préparée derrière
+`SLOTS_SHARED_ACCOUNTS=true` (désactivé par défaut). Elle exige une base migrée
+explicitement et utilise les schémas `slots,identity`. Les mots de passe et
+sessions sont communs, tandis que les portefeuilles, saisons et statistiques
+de Slots restent distincts des crédits et statistiques Games. Les cookies
+restent propres à chaque site : même pseudo/mot de passe, connexion sur chacun.
+Une récupération ou un changement de mot de passe dans Games révoque aussi les
+sessions Slots. La récupération par codes reste accessible depuis Games.
+
+Le [runbook LabOps Arcade](https://github.com/bingops-com/labops/tree/master/apps/workloads/arcade)
+possède la migration, les preuves de double connexion, les sauvegardes et la
+restauration. Le chart choisit le Secret commun avec `database.sharedAccounts`
+tout en gardant l'ancien cluster déclaré. `maintenance: true` arrête le serveur
+pour le gel des écritures autorisé ; ne pas supprimer l'ancien CNPG à la bascule.
+
 Machines à sous et jeux de table **entièrement fictifs** de `lab.bingo` : aucun
 argent, des crédits qui ne s'achètent pas et ne se retirent pas, et un classement
 par saison.

@@ -70,7 +70,7 @@ jobs:
         run: bash web/e2e/check.sh
 
       - name: Lint the Helm chart
-        run: helm lint chart
+        run: bash chart/tests/check.sh
 
       - name: Build the server
         run: CGO_ENABLED=0 go build -trimpath -o /tmp/slots ./cmd/slots

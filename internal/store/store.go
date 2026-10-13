@@ -210,6 +210,27 @@ func (s *Store) CreateSession(ctx context.Context, userID, tokenHash string, exp
 	return err
 }
 
+// Serialize login with password changes from either game. A password verified
+// before a recovery must not create a live session after that recovery.
+func (s *Store) CreateSessionForPassword(ctx context.Context, userID, tokenHash, passwordHash string, expires time.Time) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var current string
+	if err := tx.QueryRowContext(ctx, "SELECT password FROM users WHERE id = $1 FOR UPDATE", userID).Scan(&current); err != nil {
+		return err
+	}
+	if current != passwordHash {
+		return ErrNotFound
+	}
+	if _, err := tx.ExecContext(ctx, "INSERT INTO sessions (token_hash, user_id, expires_at) VALUES ($1, $2, $3)", tokenHash, userID, expires.UnixMilli()); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
 func (s *Store) DeleteSession(ctx context.Context, tokenHash string) error {
 	_, err := s.db.ExecContext(ctx, "DELETE FROM sessions WHERE token_hash = $1", tokenHash)
 	return err

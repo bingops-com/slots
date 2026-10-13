@@ -62,6 +62,9 @@ func open() (*store.Store, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
+	if os.Getenv("SLOTS_SHARED_ACCOUNTS") == "true" {
+		return store.OpenShared(ctx, url)
+	}
 	return store.Open(ctx, url)
 }
 
