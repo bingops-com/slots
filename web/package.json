@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev --port 3000",
     "build": "next build && node scripts/precache.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "node e2e/regressions.mjs"
   },
   "dependencies": {
     "next": "^16.4.0",
@@ -17,6 +18,8 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
+    "axe-core": "4.14.0",
+    "playwright-core": "1.56.0",
     "typescript": "^5.9.0"
   }
 }

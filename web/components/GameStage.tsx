@@ -33,6 +33,12 @@ function useImmersive() {
       if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
     };
   }, []);
+  useEffect(() => {
+    if (!on) return;
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape' && !document.querySelector('dialog[open]')) leave(); };
+    document.addEventListener('keydown', escape);
+    return () => document.removeEventListener('keydown', escape);
+  }, [on, leave]);
   return [on, toggle] as const;
 }
 

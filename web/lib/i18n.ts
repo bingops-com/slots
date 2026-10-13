@@ -173,6 +173,7 @@ const ordinal = (n: string) => `${n}${n.endsWith('1') && n !== '11' ? 'st' : n.e
 
 // Textes à trous. $1, $2… reprennent les morceaux capturés.
 const RULES: [RegExp, string | ((...m: string[]) => string)][] = [
+  [/^Seuil des dés$/, 'Dice threshold'], [/^Tapis de roulette$/, 'Roulette betting board'], [/^Case (\d+)$/, 'Tile $1'],
   [/^Classement de la saison (\d+)$/, 'Season $1 leaderboard'], [/^En tête de la saison (\d+)$/, 'Leading season $1'], [/^Classement de (.+)$/, '$1 board'],
   [/^Vous êtes (\d+)(?:er|e) sur (\d+), avec (.+)\.$/, (_, r, n, s) => `You are ${ordinal(r)} of ${n}, with ${s}.`],
   [/^(\d+) joueurs? en course\. Créez un compte pour (?:les|le) rejoindre, ou entraînez-vous sans enjeu\.$/, (_, n) => `${n} player${plural(n)} in the race. Create an account to join, or practise with no stakes.`],

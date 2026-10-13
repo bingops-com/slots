@@ -21,7 +21,7 @@ const game = {
       <div class="stage mines-stage">
         <div class="scene" aria-hidden="true"><i class="scenery" style="background-image:url(/art/tables/mines-stage.webp)"></i></div>
         <div class="winline" id="m-msg">Choisissez le nombre de mines, puis commencez</div>
-        <div class="mines-grid">${Array.from({ length: 25 }, (_, i) => `<button class="tile" data-i="${i}" disabled>${CLAM}</button>`).join('')}</div>
+        <div class="mines-grid">${Array.from({ length: 25 }, (_, i) => `<button class="tile" data-i="${i}" aria-label="Case ${i + 1}" disabled>${CLAM}</button>`).join('')}</div>
       </div>`;
     const bet = App.betControl();
     $('.controls', root).append(bet.el);

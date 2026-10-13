@@ -25,6 +25,22 @@ PostgreSQL à la première utilisation et garde ses données dans `data/pg` ; le
 tests démarrent le leur de la même façon, ou utilisent celui que désigne
 `SLOTS_TEST_DATABASE_URL`.
 
+Les régressions navigateur couvrent les 14 jeux, les affiches historiques,
+les thèmes clair/sombre sur quatre formats d'écran, les fenêtres de connexion
+(fermeture, Échap et clavier), le blackjack à plusieurs mains et l'entraînement
+WASM hors ligne. Après `make web`, avec Chromium installé et une base de
+développement dédiée, lancer :
+
+```sh
+SLOTS_DATABASE_URL=postgres://test:test@127.0.0.1:5433/slots_e2e CHROMIUM=/usr/bin/chromium bash web/e2e/check.sh
+```
+
+Ce test crée des comptes fictifs et joue des manches ; ne jamais lui fournir
+la base de production. Le serveur temporaire écoute uniquement sur loopback et
+s'arrête automatiquement. Les rapports et captures restent dans `/tmp/slots-regressions`
+(modifiable par `SLOTS_E2E_REPORT_DIR`). La CI installe son Chromium et utilise
+son PostgreSQL éphémère. La suppression du fond sonore de mer est conservée.
+
 ## Deux façons de jouer
 
 - **Classé** : avec un compte. Chaque manche est tirée et enregistrée par le

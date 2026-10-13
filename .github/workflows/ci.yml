@@ -13,6 +13,7 @@ jobs:
   test:
     name: Build and test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:17
@@ -54,6 +55,19 @@ jobs:
 
       - name: Test
         run: go test -race ./...
+
+      - name: Install regression browser
+        working-directory: web
+        run: npx --no-install playwright-core install --with-deps chromium
+
+      - name: Locate regression browser
+        working-directory: web
+        run: node --input-type=module -e 'import { chromium } from "playwright-core"; console.log("CHROMIUM=" + chromium.executablePath())' >> "$GITHUB_ENV"
+
+      - name: Browser regressions and accessibility
+        env:
+          SLOTS_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable
+        run: bash web/e2e/check.sh
 
       - name: Lint the Helm chart
         run: helm lint chart

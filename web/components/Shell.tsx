@@ -140,14 +140,20 @@ function Tools() {
 }
 
 function AuthModal() {
-  const { modal } = useApp();
+  const { modal, lang } = useApp();
   const first = useRef<HTMLInputElement>(null);
+  const box = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     if (!modal) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const dialog = box.current!;
+    dialog.showModal();
     first.current?.focus();
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && App.openModal(null);
-    document.addEventListener('keydown', esc);
-    return () => document.removeEventListener('keydown', esc);
+    return () => {
+      dialog.close();
+      if (previous?.isConnected && previous.getClientRects().length) previous.focus();
+      else document.querySelector<HTMLButtonElement>('.burger')?.focus();
+    };
   }, [modal]);
   if (!modal) return null;
   const register = modal === 'register';
@@ -161,8 +167,15 @@ function AuthModal() {
     }
   };
   return (
-    <div id="modal" className="modal" onClick={(e) => e.target === e.currentTarget && App.openModal(null)}>
-      <form className="dialog" onSubmit={submit} role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+    <dialog id="modal" ref={box} className="modal" aria-labelledby="dialog-title" onCancel={(e) => { e.preventDefault(); App.openModal(null); }} onClick={(e) => e.target === e.currentTarget && App.openModal(null)} onKeyDown={(e) => {
+      if (e.key !== 'Tab') return;
+      const items = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), a[href]')).filter(el => el.getClientRects().length);
+      const first = items[0], last = items.at(-1);
+      if (e.shiftKey && document.activeElement === first && last) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last && first) { e.preventDefault(); first.focus(); }
+    }}>
+      <form className="dialog" onSubmit={submit}>
+        <button type="button" className="dialog-close" aria-label={lang === 'en' ? 'Close dialog' : 'Fermer la fenêtre'} onClick={() => App.openModal(null)}>×</button>
         <h2 id="dialog-title">{register ? 'Créer un compte' : 'Se connecter'}</h2>
         <p>
           {register
@@ -179,19 +192,27 @@ function AuthModal() {
           {register ? "J'ai déjà un compte" : 'Créer un compte'}
         </button>
       </form>
-    </div>
+    </dialog>
   );
 }
 
 export default function Shell({ children }: { children: ReactNode }) {
-  const { toasts, user, practice } = useApp();
+  const { toasts, user, practice, modal } = useApp();
   const here = usePathname();
   const [menu, setMenu] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     void App.start();
   }, []);
   // Le menu du téléphone se referme dès qu'on a choisi une page.
   useEffect(() => setMenu(false), [here]);
+  useEffect(() => { if (modal) setMenu(false); }, [modal]);
+  useEffect(() => {
+    if (!menu) return;
+    const escape = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('dialog[open]')) { setMenu(false); menuButton.current?.focus(); } };
+    document.addEventListener('keydown', escape);
+    return () => document.removeEventListener('keydown', escape);
+  }, [menu]);
   return (
     <>
       <div id="app">
@@ -202,7 +223,7 @@ export default function Shell({ children }: { children: ReactNode }) {
             <span>lab.bingo <span className="lockup-kind">slots</span></span>
           </Link>
           <Readout className="side-wallet" />
-          <button className="burger" aria-label="Menu" aria-expanded={menu} aria-controls="menu" onClick={() => setMenu(!menu)}><i /></button>
+          <button ref={menuButton} className="burger" aria-label="Menu" aria-expanded={menu} aria-controls="menu" onClick={() => setMenu(!menu)}><i /></button>
           {/* Sur téléphone, le menu porte aussi le compte et les réglages. */}
           <div id="menu" className={menu ? 'menu open' : 'menu'}>
             <div className="menu-tools">
