@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import { pic, GAMES } from '@/games/catalog';
 import { App, useApp } from '@/lib/app';
 import { store } from '@/lib/dom.js';
-import Icon, { Tile } from './Icon';
+import Icon, { ControlIcon } from './Icon';
 
 // Une famille de jeux dans la navigation : son titre l'ouvre et la referme, et le choix
 // est retenu d'une visite à l'autre.
@@ -111,21 +111,21 @@ function Tools() {
   const s = useApp();
   return (
     <>
-      {s.offline && <button className="offline" onClick={() => App.refresh({ offline: false })}><Tile name="anchor" />Hors ligne, réessayer</button>}
+      {s.offline && <button className="offline" onClick={() => App.refresh({ offline: false })}><ControlIcon name="offline" />Hors ligne, réessayer</button>}
       <button className="btn quiet small sound" aria-pressed={s.sound} onClick={() => App.toggleSound()}>
-        <Tile name={s.sound ? 'bell' : 'bell-off'} />
+        <ControlIcon name={s.sound ? 'sound' : 'mute'} />
         {s.sound ? 'Son activé' : 'Son coupé'}
       </button>
       <button className="btn quiet small" data-notranslate lang={s.lang === 'fr' ? 'en' : 'fr'} onClick={() => App.setLang(s.lang === 'fr' ? 'en' : 'fr')}>
-        <Tile name="globe" />
+        <ControlIcon name="language" />
         {s.lang === 'fr' ? 'English' : 'Français'}
       </button>
       {s.account && !s.practice && s.account.debt > 0 && <button className="btn quiet small" onClick={() => App.openModal('repay')}>Rembourser</button>}
       <div className="account">
         {s.account ? (
           <>
-            <span className="who"><Tile name="cap" />{s.account.name}</span>
-            <button className="btn quiet small" onClick={() => App.signOut()}><Tile name="rowboat" />Se déconnecter</button>
+            <span className="who"><ControlIcon name="user" />{s.account.name}</span>
+            <button className="btn quiet small" onClick={() => App.signOut()}><ControlIcon name="logout" />Se déconnecter</button>
           </>
         ) : (
           s.ready && (

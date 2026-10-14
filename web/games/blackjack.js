@@ -4,6 +4,7 @@ import { Art } from '../lib/art.js';
 import { Reels, fly, countUp, stageBanner, bigWin, slotLayout, settled } from '../lib/slotkit.js';
 import { Sound } from '../lib/sound.js';
 import { createFx } from '../lib/fx.js';
+import { blackjackBets } from '../lib/blackjack-bets';
 
 const game = {
   mount(root, active) {
@@ -25,7 +26,7 @@ const game = {
         <div class="winline" id="bj-msg">Blackjack payé 3 pour 2, le croupier reste à 17</div>
         <div class="bj-row"><div class="bj-hands" id="bj-hands"></div><h4>Vous</h4></div>
       </div>`;
-    const bet = App.betControl();
+    const bet = blackjackBets({ sides: false });
     $('.controls', root).append(bet.el);
     let busy = false;
     let playing = false;

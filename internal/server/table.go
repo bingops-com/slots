@@ -101,7 +101,7 @@ func (r *room) close(ctx context.Context) {
 	defer r.mu.Unlock()
 	for _, seat := range r.table.Pending() {
 		_, err := r.srv.store.Play(ctx, seat.UserID, func(u *store.User) (*store.Round, error) {
-			engine.TableRefund(u.Wallet, seat.Bet, seat.FromStake)
+			engine.TableRefund(u.Wallet, seat.Committed(), seat.FromStake)
 			return nil, nil
 		})
 		if err != nil {
@@ -176,8 +176,9 @@ func (s *Server) tableBet(w http.ResponseWriter, r *http.Request) (any, error) {
 		return nil, httpError{http.StatusTooManyRequests, "Trop de manches à la fois, ralentissez"}
 	}
 	var body struct {
-		Bet  int64 `json:"bet"`
-		Seat *int  `json:"seat"` // the place asked for; any free one when absent
+		Bet      int64                `json:"bet"`
+		Seat     *int                 `json:"seat"` // the place asked for; any free one when absent
+		SideBets engine.TableSideBets `json:"sideBets"`
 	}
 	if err := readJSON(r, &body); err != nil {
 		return nil, err
@@ -195,15 +196,19 @@ func (s *Server) tableBet(w http.ResponseWriter, r *http.Request) (any, error) {
 	if err := rm.table.CanBet(u.ID, body.Bet, pos); err != nil {
 		return nil, err
 	}
+	cost, err := engine.TableBetCost(body.Bet, body.SideBets)
+	if err != nil {
+		return nil, err
+	}
 	var fromStake int64
 	if _, err := s.store.Play(r.Context(), u.ID, func(u *store.User) (*store.Round, error) {
 		var err error
-		fromStake, err = engine.TableDebit(u.Wallet, body.Bet)
+		fromStake, err = engine.TableDebit(u.Wallet, cost)
 		return nil, err
 	}); err != nil {
 		return nil, err
 	}
-	rm.table.Bet(u.ID, u.Name, body.Bet, fromStake, pos, nowMs())
+	rm.table.BetWithSides(u.ID, u.Name, body.Bet, fromStake, body.SideBets, pos, nowMs())
 	rm.moved()
 	return rm.answer(r.Context(), u)
 }
